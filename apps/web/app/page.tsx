@@ -7,9 +7,11 @@ import {
   ChevronRight,
   Clapperboard,
   Clock,
+  Download,
   Eye,
   FileCode2,
   Film,
+  FlaskConical,
   Loader2,
   Play,
   Radio,
@@ -24,6 +26,7 @@ import { recordings } from '@agent/lib/catalog';
 import { reviewInterval } from '@agent/tools/review-footage';
 import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
+type Saved = Analysis & { source: string; skillText: string };
 const time = (n: number) =>
   `${Math.floor(n / 60)
     .toString()
@@ -41,11 +44,13 @@ export default function Home() {
     [phase, setPhase] = useState(''),
     [error, setError] = useState(''),
     [connected, setConnected] = useState(false),
-    [tab, setTab] = useState<'observe' | 'skills'>('observe'),
+    [tab, setTab] = useState<'observe' | 'skills' | 'runs'>('observe'),
+    [runs, setRuns] = useState<Saved[]>([]),
     [live, setLive] = useState(false),
     [watch, setWatch] = useState(false),
     [position, setPosition] = useState(0),
-    [duration, setDuration] = useState(0);
+    [duration, setDuration] = useState(0),
+    [savedLabel, setSavedLabel] = useState(false);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -78,6 +83,9 @@ export default function Home() {
     fetch('/api/health')
       .then((r) => r.json())
       .then((h) => setConnected(h.connected));
+    try {
+      setRuns(JSON.parse(localStorage.getItem('lookout-runs') || '[]'));
+    } catch {}
     return () => stream.current?.getTracks().forEach((t) => t.stop());
   }, []);
   useEffect(() => {
@@ -91,11 +99,22 @@ export default function Home() {
       id: l.slice(2, l.indexOf(':')),
       label: l.slice(l.indexOf(':') + 1).trim(),
     }));
+  function remember(r: Analysis, src: string, text: string) {
+    setRuns((old) => {
+      const next = [{ ...r, source: src, skillText: text }, ...old].slice(
+        0,
+        30,
+      );
+      localStorage.setItem('lookout-runs', JSON.stringify(next));
+      return next;
+    });
+  }
   function clear() {
     generation.current++;
     setResult(null);
     setFrames([]);
     setError('');
+    setSavedLabel(false);
     setPosition(0);
   }
   function choose(src: string, name: string, id?: string) {
@@ -136,6 +155,7 @@ export default function Home() {
     running.current = true;
     setBusy(true);
     setError('');
+    setSavedLabel(false);
     const g = generation.current;
     const text = skill,
       m = model;
@@ -173,6 +193,7 @@ export default function Home() {
       }
       if (g !== generation.current) return;
       setResult(r);
+      remember(r, source, text);
       setPhase('Observation complete');
     } catch (e) {
       if (g === generation.current)
@@ -326,6 +347,18 @@ export default function Home() {
       setBusy(false);
     }
   }
+  function exportRun() {
+    if (!result) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(
+      new Blob([JSON.stringify({ ...result, skill, source }, null, 2)], {
+        type: 'application/json',
+      }),
+    );
+    a.download = 'lookout-evidence.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
   const verified =
     result?.verdict.steps.filter((s) => s.status === 'verified').length || 0;
   return (
@@ -349,6 +382,7 @@ export default function Home() {
           {[
             { id: 'observe', icon: ScanLine, label: 'Observation studio' },
             { id: 'skills', icon: FileCode2, label: 'Skills' },
+            { id: 'runs', icon: Clock, label: 'Run history' },
           ].map((n) => (
             <button
               key={n.id}
@@ -385,7 +419,13 @@ export default function Home() {
         <header>
           <div className="breadcrumbs">
             Workspace <ChevronRight size={13} />{' '}
-            <span>{tab === 'observe' ? 'Observation studio' : 'Skills'}</span>
+            <span>
+              {tab === 'observe'
+                ? 'Observation studio'
+                : tab === 'skills'
+                  ? 'Skills'
+                  : 'Run history'}
+            </span>
           </div>
           <span className="version">
             PRIVATE PREVIEW <span>0.1</span>
@@ -397,12 +437,16 @@ export default function Home() {
             <h1>
               {tab === 'observe'
                 ? 'Give your camera a job.'
-                : 'Procedures, in plain language.'}
+                : tab === 'skills'
+                  ? 'Procedures, in plain language.'
+                  : 'Every decision leaves evidence.'}
             </h1>
             <p>
               {tab === 'observe'
                 ? 'Turn everyday footage into actions you can verify.'
-                : 'Define what to observe and what counts as done.'}
+                : tab === 'skills'
+                  ? 'Define what to observe and what counts as done.'
+                  : 'Revisit real model runs, their evidence, and their cost.'}
             </p>
           </div>
           {tab === 'observe' && (
@@ -700,6 +744,11 @@ export default function Home() {
                         : 'Nothing marked done without evidence.'}
                     </h2>
                   </div>
+                  {result && (
+                    <button className="button subtle" onClick={exportRun}>
+                      <Download size={15} /> Export run
+                    </button>
+                  )}
                 </div>
                 {result ? (
                   <>
@@ -714,7 +763,7 @@ export default function Home() {
                     </div>
                     <div className="run-meta">
                       <span>
-                        Model run ·{' '}
+                        {savedLabel ? 'Saved run' : 'Model run'} ·{' '}
                         {MODELS.find((m) => m.id === result.model)?.name}
                       </span>
                       <span>
@@ -829,6 +878,64 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+            </section>
+          )}
+          {tab === 'runs' && (
+            <section className="history">
+              <div className="panel-top">
+                <span>RECENT OBSERVATIONS</span>
+                <span>{runs.length} runs · stored in this browser</span>
+              </div>
+              {!runs.length ? (
+                <div className="empty-evidence">
+                  <FlaskConical size={30} />
+                  <p>Your completed runs will appear here.</p>
+                </div>
+              ) : (
+                runs.map((r) => (
+                  <button
+                    className="history-row"
+                    key={r.id}
+                    onClick={() => {
+                      choose(r.source, 'Saved observation');
+                      const existing = skills.find(
+                        (s) => s.markdown === r.skillText,
+                      );
+                      const restored = existing || {
+                        id: 'run-' + r.id,
+                        name: 'Saved procedure',
+                        markdown: r.skillText,
+                      };
+                      if (!existing) setSkills((old) => [...old, restored]);
+                      setSkillId(restored.id);
+                      setModel(r.model);
+                      setSkill(r.skillText);
+                      setResult(r);
+                      setSavedLabel(true);
+                    }}
+                  >
+                    <span className="history-icon">
+                      <Eye size={18} />
+                    </span>
+                    <div>
+                      <strong>{r.verdict.summary}</strong>
+                      <small>
+                        {MODELS.find((m) => m.id === r.model)?.name} ·{' '}
+                        {new Date(r.createdAt).toLocaleString()}
+                      </small>
+                    </div>
+                    <span>
+                      {
+                        r.verdict.steps.filter((s) => s.status === 'verified')
+                          .length
+                      }
+                      /{r.verdict.steps.length} verified
+                    </span>
+                    <span>${r.cost.toFixed(4)}</span>
+                    <ChevronRight size={16} />
+                  </button>
+                ))
+              )}
             </section>
           )}
           <footer>
