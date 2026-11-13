@@ -58,3 +58,14 @@ export async function extractFrames(
     video.load();
   }
 }
+export function cameraFrame(video: HTMLVideoElement, time: number): Frame {
+  const c = document.createElement('canvas');
+  c.width = 768;
+  c.height = Math.round((video.videoHeight / video.videoWidth) * 768) || 512;
+  c.getContext('2d')!.drawImage(video, 0, 0, c.width, c.height);
+  return {
+    id: `f-${Math.round(time * 1000)}`,
+    time,
+    image: c.toDataURL('image/jpeg', 0.72),
+  };
+}

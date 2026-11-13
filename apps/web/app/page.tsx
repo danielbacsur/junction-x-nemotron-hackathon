@@ -8,15 +8,18 @@ import {
   Clapperboard,
   Clock,
   Eye,
+  Film,
   Loader2,
   Play,
+  Radio,
   ScanLine,
+  Square,
   Upload,
   X,
 } from 'lucide-react';
 import { MODELS, type Analysis, type Frame } from '@agent/lib/contracts';
 import { recordings } from '@agent/lib/catalog';
-import { extractFrames } from '@/lib/video';
+import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
 const time = (n: number) =>
   `${Math.floor(n / 60)
@@ -35,12 +38,22 @@ export default function Home() {
     [phase, setPhase] = useState(''),
     [error, setError] = useState(''),
     [connected, setConnected] = useState(false),
+    [live, setLive] = useState(false),
+    [watch, setWatch] = useState(false),
     [position, setPosition] = useState(0),
     [duration, setDuration] = useState(0);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
+    stream = useRef<MediaStream | null>(null),
+    recorder = useRef<MediaRecorder | null>(null),
     generation = useRef(0),
-    running = useRef(false);
+    running = useRef(false),
+    liveFrames = useRef<Frame[]>([]),
+    started = useRef(0),
+    watchRef = useRef(false),
+    latest = useRef({ skill, model });
+  latest.current = { skill, model };
+  watchRef.current = watch;
   useEffect(() => {
     fetch('/api/skills')
       .then((r) => r.json())
@@ -51,6 +64,7 @@ export default function Home() {
     fetch('/api/health')
       .then((r) => r.json())
       .then((h) => setConnected(h.connected));
+    return () => stream.current?.getTracks().forEach((t) => t.stop());
   }, []);
   useEffect(() => {
     const v = video.current;
@@ -71,6 +85,7 @@ export default function Home() {
     setPosition(0);
   }
   function choose(src: string, name: string, id?: string) {
+    stopCamera(true);
     clear();
     setSource(src);
     setTitle(name);
@@ -115,8 +130,108 @@ export default function Home() {
       setBusy(false);
     }
   }
+  async function startCamera() {
+    if (stream.current || running.current) return;
+    clear();
+    setError('');
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      stream.current = s;
+      setLive(true);
+      setTitle('Live camera');
+      started.current = performance.now();
+      liveFrames.current = [];
+      setTimeout(() => {
+        if (video.current) {
+          video.current.srcObject = s;
+          video.current.play();
+        }
+      }, 0);
+      const chunks: Blob[] = [];
+      const mime = ['video/mp4', 'video/webm;codecs=vp8'].find((m) =>
+        MediaRecorder.isTypeSupported(m),
+      );
+      const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
+      r.ondataavailable = (e) => {
+        if (e.data.size) chunks.push(e.data);
+      };
+      r.onstop = () => {
+        if (chunks.length) {
+          const url = URL.createObjectURL(
+            new Blob(chunks, { type: r.mimeType }),
+          );
+          setSource(url);
+          setTitle('Camera recording');
+          if (video.current) video.current.srcObject = null;
+        }
+      };
+      r.start(1000);
+      recorder.current = r;
+    } catch (e) {
+      stream.current?.getTracks().forEach((t) => t.stop());
+      stream.current = null;
+      setLive(false);
+      setError(
+        e instanceof DOMException && e.name === 'NotAllowedError'
+          ? 'Camera permission was denied. Allow camera access in your browser, or upload a recording to continue.'
+          : e instanceof Error
+            ? e.message
+            : 'Camera unavailable',
+      );
+    }
+  }
+  function stopCamera(discard = false) {
+    generation.current++;
+    setWatch(false);
+    setLive(false);
+    if (recorder.current?.state === 'recording') {
+      if (discard) recorder.current.onstop = null;
+      recorder.current.stop();
+    }
+    stream.current?.getTracks().forEach((t) => t.stop());
+    stream.current = null;
+    if (video.current) video.current.srcObject = null;
+  }
+  useEffect(() => {
+    if (!live) return;
+    const timer = setInterval(async () => {
+      const v = video.current;
+      if (!v?.videoWidth) return;
+      if ((performance.now() - started.current) / 1000 >= 120) {
+        stopCamera();
+        return;
+      }
+      const f = cameraFrame(v, (performance.now() - started.current) / 1000);
+      liveFrames.current = [...liveFrames.current, f].slice(-28);
+      setPosition(f.time);
+      if (!watchRef.current || running.current || liveFrames.current.length < 4)
+        return;
+      running.current = true;
+      setBusy(true);
+      setPhase('Watching the current action');
+      const g = generation.current;
+      try {
+        const fs = [...liveFrames.current];
+        const r = await send(fs, latest.current.skill, latest.current.model);
+        if (g === generation.current && stream.current) {
+          setFrames(fs);
+          setResult(r);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Observation failed');
+        setWatch(false);
+      } finally {
+        running.current = false;
+        setBusy(false);
+      }
+    }, 1800);
+    return () => clearInterval(timer);
+  }, [live]);
   function seek(t: number) {
-    if (video.current) {
+    if (video.current && !live) {
       video.current.currentTime = t;
       setPosition(t);
     }
@@ -177,6 +292,17 @@ export default function Home() {
             <p>Turn everyday footage into actions you can verify.</p>
           </div>
           <div className="studio-toolbar">
+            <div className="segmented">
+              <button
+                className={!live ? 'selected' : ''}
+                onClick={() => stopCamera()}
+              >
+                <Film size={15} /> Recordings
+              </button>
+              <button className={live ? 'selected' : ''} onClick={startCamera}>
+                <Radio size={15} /> Live camera
+              </button>
+            </div>
             <div className="toolbar-actions">
               <button
                 className="button subtle"
@@ -201,8 +327,8 @@ export default function Home() {
             <section className="visual-panel">
               <div className="panel-top">
                 <span>
-                  <i className="dot green" />
-                  REPLAY SOURCE
+                  <i className={'dot ' + (live ? 'red' : 'green')} />
+                  {live ? 'CAMERA LIVE' : 'REPLAY SOURCE'}
                 </span>
                 <span className="mono">{title}</span>
               </div>
@@ -214,8 +340,8 @@ export default function Home() {
                       ? source.replace('.mp4', '.jpg')
                       : undefined
                   }
-                  src={source}
-                  controls
+                  src={live ? undefined : source}
+                  controls={!live}
                   muted
                   playsInline
                   onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
@@ -229,7 +355,7 @@ export default function Home() {
                 />
                 <div className="video-corner">
                   <ScanLine size={14} />
-                  RECORDED <span>{time(position)}</span>
+                  {live ? 'LIVE' : 'RECORDED'} <span>{time(position)}</span>
                 </div>
                 {busy && (
                   <div className="analyzing">
@@ -241,35 +367,52 @@ export default function Home() {
               <div className="film-meta">
                 <span>
                   <Clapperboard size={16} />{' '}
-                  {duration ? duration.toFixed(1) : '—'} seconds · original
-                  footage
+                  {live
+                    ? 'Browser camera · recording locally'
+                    : `${duration ? duration.toFixed(1) : '—'} seconds · original footage`}
                 </span>
                 <span>Evidence stays linked to time</span>
               </div>
-              <div className="recording-list">
-                {recordings.map((r, i) => (
+              {!live && (
+                <div className="recording-list">
+                  {recordings.map((r, i) => (
+                    <button
+                      className={
+                        source === r.src
+                          ? 'recording selected-recording'
+                          : 'recording'
+                      }
+                      key={r.id}
+                      onClick={() => choose(r.src, r.title, r.skill)}
+                      disabled={busy}
+                    >
+                      <span className="recording-number">0{i + 1}</span>
+                      <span>
+                        <strong>{r.title}</strong>
+                        <small>{r.description}</small>
+                      </span>
+                      <span className="clip-duration">
+                        {r.duration.toFixed(0)}s
+                      </span>
+                      <ChevronRight size={14} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {live && (
+                <div className="camera-actions">
                   <button
-                    className={
-                      source === r.src
-                        ? 'recording selected-recording'
-                        : 'recording'
-                    }
-                    key={r.id}
-                    onClick={() => choose(r.src, r.title, r.skill)}
-                    disabled={busy}
+                    className="button primary"
+                    onClick={() => setWatch(!watch)}
                   >
-                    <span className="recording-number">0{i + 1}</span>
-                    <span>
-                      <strong>{r.title}</strong>
-                      <small>{r.description}</small>
-                    </span>
-                    <span className="clip-duration">
-                      {r.duration.toFixed(0)}s
-                    </span>
-                    <ChevronRight size={14} />
+                    {watch ? <Square size={15} /> : <Eye size={15} />}{' '}
+                    {watch ? 'Pause observer' : 'Start watching'}
                   </button>
-                ))}
-              </div>
+                  <button className="button" onClick={() => stopCamera()}>
+                    Stop & replay recording
+                  </button>
+                </div>
+              )}
             </section>
             <section className="agent-panel">
               <div className="panel-top">
@@ -361,7 +504,7 @@ export default function Home() {
                   <label className="field-label">REASONING MODEL</label>
                   <select
                     value={model}
-                    disabled={busy}
+                    disabled={busy || watch}
                     onChange={(e) => {
                       setModel(e.target.value);
                       clear();
@@ -380,19 +523,21 @@ export default function Home() {
                       : 'Experimental comparison'}
                   </small>
                 </div>
-                <button
-                  className="button primary analyze-button"
-                  onClick={analyze}
-                  disabled={busy || !skill}
-                >
-                  {busy ? (
-                    <Loader2 size={16} className="spin" />
-                  ) : (
-                    <ScanLine size={16} />
-                  )}{' '}
-                  {busy ? phase : 'Analyze recording'}
-                  {!busy && <ArrowUpRight size={16} />}
-                </button>
+                {!live && (
+                  <button
+                    className="button primary analyze-button"
+                    onClick={analyze}
+                    disabled={busy || !skill}
+                  >
+                    {busy ? (
+                      <Loader2 size={16} className="spin" />
+                    ) : (
+                      <ScanLine size={16} />
+                    )}{' '}
+                    {busy ? phase : 'Analyze recording'}
+                    {!busy && <ArrowUpRight size={16} />}
+                  </button>
+                )}
                 <p className="privacy-note">
                   Only selected frames are sent for analysis.
                 </p>

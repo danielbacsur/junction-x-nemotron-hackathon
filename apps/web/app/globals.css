@@ -181,6 +181,10 @@ nav button.active {
   background: #709b54;
   box-shadow: 0 0 0 3px #709b5410;
 }
+.dot.red {
+  background: #ed725c;
+  box-shadow: 0 0 0 3px #ed725c20;
+}
 main {
   margin-left: 224px;
   min-width: 0;
@@ -247,6 +251,29 @@ h1 {
   align-items: center;
   justify-content: space-between;
   margin: 29px 0 18px;
+}
+.segmented {
+  display: flex;
+  padding: 4px;
+  background: #eceff0;
+  border-radius: 7px;
+  gap: 3px;
+}
+.segmented button {
+  border: 0;
+  background: none;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #858c90;
+  font-size: 11px;
+}
+.segmented .selected {
+  background: white;
+  box-shadow: 0 1px 4px #00000009;
+  color: #3c484f;
 }
 .button {
   border: 1px solid #dfe4e5;
@@ -730,6 +757,11 @@ h2 {
   border-radius: 7px;
   margin-top: 18px;
 }
+.camera-actions {
+  display: flex;
+  gap: 10px;
+  padding: 18px;
+}
 footer {
   display: flex;
   justify-content: space-between;
@@ -855,6 +887,10 @@ footer {
   }
   .studio-toolbar {
     gap: 8px;
+  }
+  .segmented button {
+    padding: 8px;
+    font-size: 10px;
   }
   .button {
     padding: 10px;
