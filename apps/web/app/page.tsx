@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { MODELS, type Analysis, type Frame } from '@agent/lib/contracts';
 import { recordings } from '@agent/lib/catalog';
+import { reviewInterval } from '@agent/tools/review-footage';
 import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
 const time = (n: number) =>
@@ -94,11 +95,23 @@ export default function Home() {
       setSkill(skills.find((s) => s.id === id)?.markdown || '');
     }
   }
-  async function send(fs: Frame[], text: string, m: string) {
+  async function send(
+    fs: Frame[],
+    text: string,
+    m: string,
+    previous?: Analysis,
+    reviewed = false,
+  ) {
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ frames: fs, skill: text, model: m }),
+      body: JSON.stringify({
+        frames: fs,
+        skill: text,
+        model: m,
+        previous: previous ? JSON.stringify(previous.verdict) : undefined,
+        reviewed,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -118,7 +131,32 @@ export default function Home() {
       if (g !== generation.current) return;
       setFrames(fs);
       setPhase('Observing the procedure');
-      const r = await send(fs, text, m);
+      let r = await send(fs, text, m);
+      if (g !== generation.current) return;
+      setResult(r);
+      let all = fs;
+      if (r.verdict.request.needed) {
+        setPhase('Reviewing an uncertain moment');
+        const interval = reviewInterval(r.verdict.request, fs.at(-1)!.time);
+        if (interval) {
+          const dense = await extractFrames(
+            source,
+            interval.start,
+            interval.end,
+            12,
+          );
+          all = [
+            ...new Map([...fs, ...dense].map((f) => [f.id, f])).values(),
+          ].sort((a, b) => a.time - b.time);
+          setFrames(all);
+          const next = await send(all, text, m, r, true);
+          next.cost += r.cost;
+          next.latencyMs += r.latencyMs;
+          next.inputTokens += r.inputTokens;
+          next.outputTokens += r.outputTokens;
+          r = next;
+        }
+      }
       if (g !== generation.current) return;
       setResult(r);
       setPhase('Observation complete');
@@ -583,6 +621,9 @@ export default function Home() {
                   </span>
                   <span>{result.frames.length} frames</span>
                   <span>~${result.cost.toFixed(4)}</span>
+                  {result.reviewed && (
+                    <span className="review-tag">Footage reviewed</span>
+                  )}
                 </div>
                 <div className="events">
                   {result.verdict.events.map((e, i) => (

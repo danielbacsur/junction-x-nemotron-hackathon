@@ -679,6 +679,9 @@ h2 {
   align-items: center;
   gap: 5px;
 }
+.review-tag {
+  color: #819c65;
+}
 .events {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
