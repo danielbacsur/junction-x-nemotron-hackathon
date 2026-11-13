@@ -76,6 +76,21 @@ export async function callModel(args: {
           max_tokens: 6000,
           temperature: 0.1,
           reasoning: { enabled: false },
+          ...(args.model.startsWith('google/') &&
+          process.env.GOOGLE_GENERATIVE_AI_API_KEY
+            ? {
+                providerOptions: {
+                  gateway: {
+                    only: ['google'],
+                    byok: {
+                      google: [
+                        { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY },
+                      ],
+                    },
+                  },
+                },
+              }
+            : {}),
         }),
         signal: AbortSignal.timeout(100000),
       },
@@ -87,7 +102,13 @@ export async function callModel(args: {
         continue;
       }
       throw new Error(
-        `Gateway ${res.status}: ${body.replaceAll(key, '[redacted]').slice(0, 500)}`,
+        `Gateway ${res.status}: ${body
+          .replaceAll(key, '[redacted]')
+          .replaceAll(
+            process.env.GOOGLE_GENERATIVE_AI_API_KEY || '__no_key__',
+            '[redacted]',
+          )
+          .slice(0, 500)}`,
       );
     }
     raw = await res.json();
@@ -127,7 +148,22 @@ export async function callModel(args: {
   const m = MODELS.find((m) => m.id === args.model)!;
   const inputTokens = raw.usage?.prompt_tokens ?? 0,
     outputTokens = raw.usage?.completion_tokens ?? 0;
+  let isByok: boolean | undefined;
+  if (args.model.startsWith('google/') && raw.id) {
+    try {
+      const meta = await fetch(
+        `https://ai-gateway.vercel.sh/v1/generation?id=${encodeURIComponent(raw.id)}`,
+        {
+          headers: { Authorization: `Bearer ${key}` },
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+      if (meta.ok) isByok = (await meta.json()).data?.is_byok;
+    } catch {}
+  }
   return {
+    generationId: raw.id,
+    isByok,
     id: crypto.randomUUID(),
     model: args.model,
     verdict,

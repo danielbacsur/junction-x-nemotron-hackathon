@@ -14,6 +14,13 @@ export const MODELS = [
     input: 0.1,
     output: 0.4,
   },
+  {
+    id: 'google/gemini-2.5-flash-lite',
+    name: 'Gemini Flash Lite',
+    detail: 'Experimental · Gateway',
+    input: 0.1,
+    output: 0.4,
+  },
 ] as const;
 export const frameSchema = z.object({
   id: z.string().max(80),
@@ -65,6 +72,8 @@ export type Analysis = {
   cost: number;
   createdAt: string;
   reviewed: boolean;
+  generationId?: string;
+  isByok?: boolean;
 };
 export const requestSchema = z.object({
   frames: z
