@@ -8,11 +8,13 @@ import {
   Clapperboard,
   Clock,
   Eye,
+  FileCode2,
   Film,
   Loader2,
   Play,
   Radio,
   ScanLine,
+  Settings2,
   Square,
   Upload,
   X,
@@ -39,6 +41,7 @@ export default function Home() {
     [phase, setPhase] = useState(''),
     [error, setError] = useState(''),
     [connected, setConnected] = useState(false),
+    [tab, setTab] = useState<'observe' | 'skills'>('observe'),
     [live, setLive] = useState(false),
     [watch, setWatch] = useState(false),
     [position, setPosition] = useState(0),
@@ -58,9 +61,19 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/skills')
       .then((r) => r.json())
-      .then((s: Skill[]) => {
-        setSkills(s);
-        setSkill(s.find((x) => x.id === 'pack')?.markdown || s[0].markdown);
+      .then((s) => {
+        const custom = JSON.parse(
+          localStorage.getItem('lookout-skills') || '[]',
+        );
+        const merged = [
+          ...s.filter((x: Skill) => !custom.some((c: Skill) => c.id === x.id)),
+          ...custom,
+        ];
+        setSkills(merged);
+        setSkill(
+          merged.find((x: Skill) => x.id === 'pack')?.markdown ||
+            merged[0].markdown,
+        );
       });
     fetch('/api/health')
       .then((r) => r.json())
@@ -70,7 +83,7 @@ export default function Home() {
   useEffect(() => {
     const v = video.current;
     if (v && v.readyState >= 1) setDuration(v.duration);
-  }, [source]);
+  }, [source, tab]);
   const steps = skill
     .split('\n')
     .filter((l) => /^- [\w-]+:/.test(l))
@@ -94,6 +107,7 @@ export default function Home() {
       setSkillId(id);
       setSkill(skills.find((s) => s.id === id)?.markdown || '');
     }
+    setTab('observe');
   }
   async function send(
     fs: Frame[],
@@ -274,6 +288,44 @@ export default function Home() {
       setPosition(t);
     }
   }
+  async function teach() {
+    if (running.current) return;
+    running.current = true;
+    setBusy(true);
+    setError('');
+    setPhase('Learning from the demonstration');
+    const g = generation.current;
+    try {
+      const fs = await extractFrames(source, 0, undefined, 24);
+      const res = await fetch('/api/teach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frames: fs,
+          model,
+          skill: 'Discover the demonstrated procedure.',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (g !== generation.current) return;
+      const item = {
+        id: 'learned-' + Date.now(),
+        name: 'Learned procedure',
+        markdown: data.markdown,
+      };
+      setSkills((old) => [...old, item]);
+      setSkillId(item.id);
+      setSkill(item.markdown);
+      setResult(null);
+      setTab('skills');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Teaching failed');
+    } finally {
+      running.current = false;
+      setBusy(false);
+    }
+  }
   const verified =
     result?.verdict.steps.filter((s) => s.status === 'verified').length || 0;
   return (
@@ -294,10 +346,25 @@ export default function Home() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav>
-          <button className="active">
-            <ScanLine size={17} />
-            Observation studio
-          </button>
+          {[
+            { id: 'observe', icon: ScanLine, label: 'Observation studio' },
+            { id: 'skills', icon: FileCode2, label: 'Skills' },
+          ].map((n) => (
+            <button
+              key={n.id}
+              className={tab === n.id ? 'active' : ''}
+              onClick={() => {
+                if (live) stopCamera();
+                setTab(n.id as typeof tab);
+              }}
+            >
+              <n.icon size={17} />
+              {n.label}
+              {n.id === 'skills' && (
+                <span className="nav-count">{skills.length}</span>
+              )}
+            </button>
+          ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="powered">
@@ -317,7 +384,8 @@ export default function Home() {
       <main>
         <header>
           <div className="breadcrumbs">
-            Workspace <ChevronRight size={13} /> <span>Observation studio</span>
+            Workspace <ChevronRight size={13} />{' '}
+            <span>{tab === 'observe' ? 'Observation studio' : 'Skills'}</span>
           </div>
           <span className="version">
             PRIVATE PREVIEW <span>0.1</span>
@@ -326,346 +394,443 @@ export default function Home() {
         <div className="content">
           <div className="page-heading">
             <div className="eyebrow">SEE. UNDERSTAND. FOLLOW THROUGH.</div>
-            <h1>Give your camera a job.</h1>
-            <p>Turn everyday footage into actions you can verify.</p>
+            <h1>
+              {tab === 'observe'
+                ? 'Give your camera a job.'
+                : 'Procedures, in plain language.'}
+            </h1>
+            <p>
+              {tab === 'observe'
+                ? 'Turn everyday footage into actions you can verify.'
+                : 'Define what to observe and what counts as done.'}
+            </p>
           </div>
-          <div className="studio-toolbar">
-            <div className="segmented">
-              <button
-                className={!live ? 'selected' : ''}
-                onClick={() => stopCamera()}
-              >
-                <Film size={15} /> Recordings
-              </button>
-              <button className={live ? 'selected' : ''} onClick={startCamera}>
-                <Radio size={15} /> Live camera
-              </button>
-            </div>
-            <div className="toolbar-actions">
-              <button
-                className="button subtle"
-                onClick={() => input.current?.click()}
-                disabled={busy}
-              >
-                <Upload size={15} /> Upload video
-              </button>
-            </div>
-            <input
-              ref={input}
-              type="file"
-              accept="video/*"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) choose(URL.createObjectURL(f), f.name);
-              }}
-            />
-          </div>
-          <div className="studio-grid">
-            <section className="visual-panel">
-              <div className="panel-top">
-                <span>
-                  <i className={'dot ' + (live ? 'red' : 'green')} />
-                  {live ? 'CAMERA LIVE' : 'REPLAY SOURCE'}
-                </span>
-                <span className="mono">{title}</span>
-              </div>
-              <div className="video-wrap">
-                <video
-                  ref={video}
-                  poster={
-                    source.startsWith('/recordings/')
-                      ? source.replace('.mp4', '.jpg')
-                      : undefined
-                  }
-                  src={live ? undefined : source}
-                  controls={!live}
-                  muted
-                  playsInline
-                  onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
-                  onLoadedData={(e) => setDuration(e.currentTarget.duration)}
-                  onDurationChange={(e) =>
-                    setDuration(e.currentTarget.duration)
-                  }
-                  onLoadedMetadata={(e) =>
-                    setDuration(e.currentTarget.duration)
-                  }
-                />
-                <div className="video-corner">
-                  <ScanLine size={14} />
-                  {live ? 'LIVE' : 'RECORDED'} <span>{time(position)}</span>
+          {tab === 'observe' && (
+            <>
+              <div className="studio-toolbar">
+                <div className="segmented">
+                  <button
+                    className={!live ? 'selected' : ''}
+                    onClick={() => stopCamera()}
+                  >
+                    <Film size={15} /> Recordings
+                  </button>
+                  <button
+                    className={live ? 'selected' : ''}
+                    onClick={startCamera}
+                  >
+                    <Radio size={15} /> Live camera
+                  </button>
                 </div>
-                {busy && (
-                  <div className="analyzing">
-                    <Loader2 size={15} className="spin" />
-                    {phase}
-                  </div>
-                )}
-              </div>
-              <div className="film-meta">
-                <span>
-                  <Clapperboard size={16} />{' '}
-                  {live
-                    ? 'Browser camera · recording locally'
-                    : `${duration ? duration.toFixed(1) : '—'} seconds · original footage`}
-                </span>
-                <span>Evidence stays linked to time</span>
-              </div>
-              {!live && (
-                <div className="recording-list">
-                  {recordings.map((r, i) => (
+                <div className="toolbar-actions">
+                  {!live && (
                     <button
-                      className={
-                        source === r.src
-                          ? 'recording selected-recording'
-                          : 'recording'
-                      }
-                      key={r.id}
-                      onClick={() => choose(r.src, r.title, r.skill)}
+                      className="button subtle"
+                      onClick={teach}
                       disabled={busy}
                     >
-                      <span className="recording-number">0{i + 1}</span>
-                      <span>
-                        <strong>{r.title}</strong>
-                        <small>{r.description}</small>
-                      </span>
-                      <span className="clip-duration">
-                        {r.duration.toFixed(0)}s
-                      </span>
-                      <ChevronRight size={14} />
+                      <FileCode2 size={15} /> Learn a skill
                     </button>
-                  ))}
-                </div>
-              )}
-              {live && (
-                <div className="camera-actions">
+                  )}
                   <button
-                    className="button primary"
-                    onClick={() => setWatch(!watch)}
+                    className="button subtle"
+                    onClick={() => input.current?.click()}
+                    disabled={busy}
                   >
-                    {watch ? <Square size={15} /> : <Eye size={15} />}{' '}
-                    {watch ? 'Pause observer' : 'Start watching'}
+                    <Upload size={15} /> Upload video
                   </button>
-                  <button className="button" onClick={() => stopCamera()}>
-                    Stop & replay recording
-                  </button>
+                </div>
+                <input
+                  ref={input}
+                  type="file"
+                  accept="video/*"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) choose(URL.createObjectURL(f), f.name);
+                  }}
+                />
+              </div>
+              <div className="studio-grid">
+                <section className="visual-panel">
+                  <div className="panel-top">
+                    <span>
+                      <i className={'dot ' + (live ? 'red' : 'green')} />
+                      {live ? 'CAMERA LIVE' : 'REPLAY SOURCE'}
+                    </span>
+                    <span className="mono">{title}</span>
+                  </div>
+                  <div className="video-wrap">
+                    <video
+                      ref={video}
+                      poster={
+                        source.startsWith('/recordings/')
+                          ? source.replace('.mp4', '.jpg')
+                          : undefined
+                      }
+                      src={live ? undefined : source}
+                      controls={!live}
+                      muted
+                      playsInline
+                      onTimeUpdate={(e) =>
+                        setPosition(e.currentTarget.currentTime)
+                      }
+                      onLoadedData={(e) =>
+                        setDuration(e.currentTarget.duration)
+                      }
+                      onDurationChange={(e) =>
+                        setDuration(e.currentTarget.duration)
+                      }
+                      onLoadedMetadata={(e) =>
+                        setDuration(e.currentTarget.duration)
+                      }
+                    />
+                    <div className="video-corner">
+                      <ScanLine size={14} />
+                      {live ? 'LIVE' : 'RECORDED'} <span>{time(position)}</span>
+                    </div>
+                    {busy && (
+                      <div className="analyzing">
+                        <Loader2 size={15} className="spin" />
+                        {phase}
+                      </div>
+                    )}
+                  </div>
+                  <div className="film-meta">
+                    <span>
+                      <Clapperboard size={16} />{' '}
+                      {live
+                        ? 'Browser camera · recording locally'
+                        : `${duration ? duration.toFixed(1) : '—'} seconds · original footage`}
+                    </span>
+                    <span>Evidence stays linked to time</span>
+                  </div>
+                  {!live && (
+                    <div className="recording-list">
+                      {recordings.map((r, i) => (
+                        <button
+                          className={
+                            source === r.src
+                              ? 'recording selected-recording'
+                              : 'recording'
+                          }
+                          key={r.id}
+                          onClick={() => choose(r.src, r.title, r.skill)}
+                          disabled={busy}
+                        >
+                          <span className="recording-number">0{i + 1}</span>
+                          <span>
+                            <strong>{r.title}</strong>
+                            <small>{r.description}</small>
+                          </span>
+                          <span className="clip-duration">
+                            {r.duration.toFixed(0)}s
+                          </span>
+                          <ChevronRight size={14} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {live && (
+                    <div className="camera-actions">
+                      <button
+                        className="button primary"
+                        onClick={() => setWatch(!watch)}
+                      >
+                        {watch ? <Square size={15} /> : <Eye size={15} />}{' '}
+                        {watch ? 'Pause observer' : 'Start watching'}
+                      </button>
+                      <button className="button" onClick={() => stopCamera()}>
+                        Stop & replay recording
+                      </button>
+                    </div>
+                  )}
+                </section>
+                <section className="agent-panel">
+                  <div className="panel-top">
+                    <span>
+                      <Aperture size={16} /> AGENT
+                    </span>
+                    <span className="badge">
+                      {busy ? 'Observing' : result ? 'Review ready' : 'Ready'}
+                    </span>
+                  </div>
+                  <div className="agent-body">
+                    <label className="field-label">PROCEDURE</label>
+                    <select
+                      value={skillId}
+                      disabled={busy}
+                      onChange={(e) => {
+                        setSkillId(e.target.value);
+                        setSkill(
+                          skills.find((s) => s.id === e.target.value)
+                            ?.markdown || '',
+                        );
+                        clear();
+                      }}
+                    >
+                      {skills.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="procedure-heading">
+                      <span>
+                        {result
+                          ? `${verified} of ${steps.length} verified`
+                          : 'What the agent will look for'}
+                      </span>
+                      <button
+                        title="Edit skill"
+                        onClick={() => setTab('skills')}
+                      >
+                        <Settings2 size={14} />
+                      </button>
+                    </div>
+                    <div className="steps">
+                      {steps.map((s, i) => {
+                        const v = result?.verdict.steps.find(
+                          (v) => v.id === s.id,
+                        );
+                        return (
+                          <div
+                            key={s.id}
+                            className={'step ' + (v?.status || 'pending')}
+                          >
+                            <span className="step-icon">
+                              {v?.status === 'verified' ? (
+                                <Check size={13} />
+                              ) : v?.status === 'contradicted' ? (
+                                <X size={13} />
+                              ) : (
+                                i + 1
+                              )}
+                            </span>
+                            <div>
+                              <strong>{s.label.split('. ')[0]}</strong>
+                              {v && (
+                                <>
+                                  <span className="step-status">
+                                    {v.status.replace('_', ' ')}
+                                  </span>
+                                  <p>{v.observation}</p>
+                                  <div className="evidence-links">
+                                    {v.evidence.slice(0, 3).map((id) => {
+                                      const f = result?.frames.find(
+                                        (f) => f.id === id,
+                                      );
+                                      return (
+                                        f && (
+                                          <button
+                                            key={id}
+                                            onClick={() => seek(f.time)}
+                                          >
+                                            <Play size={10} />
+                                            {time(f.time)}
+                                          </button>
+                                        )
+                                      );
+                                    })}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="model-field">
+                      <label className="field-label">REASONING MODEL</label>
+                      <select
+                        value={model}
+                        disabled={busy || watch}
+                        onChange={(e) => {
+                          setModel(e.target.value);
+                          clear();
+                        }}
+                      >
+                        {MODELS.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <small>
+                        via Vercel AI Gateway ·{' '}
+                        {model === MODELS[0].id
+                          ? 'Challenge model'
+                          : 'Experimental comparison'}
+                      </small>
+                    </div>
+                    {!live && (
+                      <button
+                        className="button primary analyze-button"
+                        onClick={analyze}
+                        disabled={busy || !skill}
+                      >
+                        {busy ? (
+                          <Loader2 size={16} className="spin" />
+                        ) : (
+                          <ScanLine size={16} />
+                        )}{' '}
+                        {busy ? phase : 'Analyze recording'}
+                        {!busy && <ArrowUpRight size={16} />}
+                      </button>
+                    )}
+                    <p className="privacy-note">
+                      Only selected frames are sent for analysis.
+                    </p>
+                  </div>
+                </section>
+              </div>
+              {error && (
+                <div role="alert" className="error">
+                  <X size={17} />
+                  {error}
                 </div>
               )}
-            </section>
-            <section className="agent-panel">
-              <div className="panel-top">
-                <span>
-                  <Aperture size={16} /> AGENT
-                </span>
-                <span className="badge">
-                  {busy ? 'Observing' : result ? 'Review ready' : 'Ready'}
-                </span>
-              </div>
-              <div className="agent-body">
-                <label className="field-label">PROCEDURE</label>
-                <select
-                  value={skillId}
-                  disabled={busy}
-                  onChange={(e) => {
-                    setSkillId(e.target.value);
-                    setSkill(
-                      skills.find((s) => s.id === e.target.value)?.markdown ||
-                        '',
-                    );
-                    clear();
-                  }}
-                >
-                  {skills.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="procedure-heading">
-                  <span>
-                    {result
-                      ? `${verified} of ${steps.length} verified`
-                      : 'What the agent will look for'}
-                  </span>
+              <section className="evidence-panel">
+                <div className="evidence-heading">
+                  <div>
+                    <div className="eyebrow">THE EVIDENCE TRAIL</div>
+                    <h2>
+                      {result
+                        ? 'A decision you can inspect.'
+                        : 'Nothing marked done without evidence.'}
+                    </h2>
+                  </div>
                 </div>
-                <div className="steps">
-                  {steps.map((s, i) => {
-                    const v = result?.verdict.steps.find((v) => v.id === s.id);
-                    return (
-                      <div
-                        key={s.id}
-                        className={'step ' + (v?.status || 'pending')}
-                      >
-                        <span className="step-icon">
-                          {v?.status === 'verified' ? (
-                            <Check size={13} />
-                          ) : v?.status === 'contradicted' ? (
-                            <X size={13} />
-                          ) : (
-                            i + 1
-                          )}
-                        </span>
-                        <div>
-                          <strong>{s.label.split('. ')[0]}</strong>
-                          {v && (
-                            <>
-                              <span className="step-status">
-                                {v.status.replace('_', ' ')}
-                              </span>
-                              <p>{v.observation}</p>
-                              <div className="evidence-links">
-                                {v.evidence.slice(0, 3).map((id) => {
-                                  const f = result?.frames.find(
-                                    (f) => f.id === id,
-                                  );
-                                  return (
-                                    f && (
-                                      <button
-                                        key={id}
-                                        onClick={() => seek(f.time)}
-                                      >
-                                        <Play size={10} />
-                                        {time(f.time)}
-                                      </button>
-                                    )
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
-                        </div>
+                {result ? (
+                  <>
+                    <div className="result-summary">
+                      <span className="insight-icon">
+                        <Eye size={20} />
+                      </span>
+                      <div>
+                        <strong>{result.verdict.summary}</strong>
+                        <p>{result.verdict.guidance}</p>
                       </div>
-                    );
-                  })}
-                </div>
-                <div className="model-field">
-                  <label className="field-label">REASONING MODEL</label>
-                  <select
-                    value={model}
-                    disabled={busy || watch}
-                    onChange={(e) => {
-                      setModel(e.target.value);
+                    </div>
+                    <div className="run-meta">
+                      <span>
+                        Model run ·{' '}
+                        {MODELS.find((m) => m.id === result.model)?.name}
+                      </span>
+                      <span>
+                        <Clock size={12} />
+                        {(result.latencyMs / 1000).toFixed(1)}s
+                      </span>
+                      <span>{result.frames.length} frames</span>
+                      <span>~${result.cost.toFixed(4)}</span>
+                      {result.reviewed && (
+                        <span className="review-tag">Footage reviewed</span>
+                      )}
+                    </div>
+                    <div className="events">
+                      {result.verdict.events.map((e, i) => (
+                        <button key={i} onClick={() => seek(e.time)}>
+                          <span className="event-time">{time(e.time)}</span>
+                          <strong>{e.label}</strong>
+                          <p>{e.detail}</p>
+                          <ArrowUpRight size={15} />
+                        </button>
+                      ))}
+                    </div>
+                    {frames.length > 0 && (
+                      <div className="frame-strip">
+                        {frames
+                          .filter(
+                            (_, i) =>
+                              i % Math.max(1, Math.floor(frames.length / 8)) ===
+                              0,
+                          )
+                          .map((f) => (
+                            <button key={f.id} onClick={() => seek(f.time)}>
+                              <img
+                                src={f.image}
+                                alt={`Evidence at ${time(f.time)}`}
+                              />
+                              <span>{time(f.time)}</span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="empty-evidence">
+                    <div className="empty-orbit">
+                      <ScanLine size={27} />
+                    </div>
+                    <p>Choose a recording and run your first observation.</p>
+                    <span>
+                      The agent links its findings to the moments that support
+                      them.
+                    </span>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+          {tab === 'skills' && (
+            <section className="skill-workspace">
+              <aside>
+                {skills.map((s) => (
+                  <button
+                    className={s.id === skillId ? 'active' : ''}
+                    key={s.id}
+                    onClick={() => {
+                      setSkillId(s.id);
+                      setSkill(s.markdown);
                       clear();
                     }}
                   >
-                    {MODELS.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                  <small>
-                    via Vercel AI Gateway ·{' '}
-                    {model === MODELS[0].id
-                      ? 'Challenge model'
-                      : 'Experimental comparison'}
-                  </small>
-                </div>
-                {!live && (
-                  <button
-                    className="button primary analyze-button"
-                    onClick={analyze}
-                    disabled={busy || !skill}
-                  >
-                    {busy ? (
-                      <Loader2 size={16} className="spin" />
-                    ) : (
-                      <ScanLine size={16} />
-                    )}{' '}
-                    {busy ? phase : 'Analyze recording'}
-                    {!busy && <ArrowUpRight size={16} />}
+                    <FileCode2 size={17} />
+                    {s.name}
                   </button>
-                )}
-                <p className="privacy-note">
-                  Only selected frames are sent for analysis.
-                </p>
+                ))}
+              </aside>
+              <div className="skill-editor">
+                <div className="panel-top">
+                  <span>SKILL.md</span>
+                  <span>Editable procedure</span>
+                </div>
+                <textarea
+                  aria-label="Skill instructions"
+                  value={skill}
+                  onChange={(e) => {
+                    setSkill(e.target.value);
+                    generation.current++;
+                    setResult(null);
+                  }}
+                  spellCheck={false}
+                />
+                <div className="editor-footer">
+                  <span>
+                    Format: - step-id: observable completion condition
+                  </span>
+                  <button
+                    className="button primary"
+                    onClick={() => {
+                      setSkills((s) => {
+                        const next = s.map((x) =>
+                          x.id === skillId ? { ...x, markdown: skill } : x,
+                        );
+                        localStorage.setItem(
+                          'lookout-skills',
+                          JSON.stringify(next),
+                        );
+                        return next;
+                      });
+                      setTab('observe');
+                    }}
+                  >
+                    Use this skill <ArrowUpRight size={15} />
+                  </button>
+                </div>
               </div>
             </section>
-          </div>
-          {error && (
-            <div role="alert" className="error">
-              <X size={17} />
-              {error}
-            </div>
           )}
-          <section className="evidence-panel">
-            <div className="evidence-heading">
-              <div>
-                <div className="eyebrow">THE EVIDENCE TRAIL</div>
-                <h2>
-                  {result
-                    ? 'A decision you can inspect.'
-                    : 'Nothing marked done without evidence.'}
-                </h2>
-              </div>
-            </div>
-            {result ? (
-              <>
-                <div className="result-summary">
-                  <span className="insight-icon">
-                    <Eye size={20} />
-                  </span>
-                  <div>
-                    <strong>{result.verdict.summary}</strong>
-                    <p>{result.verdict.guidance}</p>
-                  </div>
-                </div>
-                <div className="run-meta">
-                  <span>
-                    Model run ·{' '}
-                    {MODELS.find((m) => m.id === result.model)?.name}
-                  </span>
-                  <span>
-                    <Clock size={12} />
-                    {(result.latencyMs / 1000).toFixed(1)}s
-                  </span>
-                  <span>{result.frames.length} frames</span>
-                  <span>~${result.cost.toFixed(4)}</span>
-                  {result.reviewed && (
-                    <span className="review-tag">Footage reviewed</span>
-                  )}
-                </div>
-                <div className="events">
-                  {result.verdict.events.map((e, i) => (
-                    <button key={i} onClick={() => seek(e.time)}>
-                      <span className="event-time">{time(e.time)}</span>
-                      <strong>{e.label}</strong>
-                      <p>{e.detail}</p>
-                      <ArrowUpRight size={15} />
-                    </button>
-                  ))}
-                </div>
-                {frames.length > 0 && (
-                  <div className="frame-strip">
-                    {frames
-                      .filter(
-                        (_, i) =>
-                          i % Math.max(1, Math.floor(frames.length / 8)) === 0,
-                      )
-                      .map((f) => (
-                        <button key={f.id} onClick={() => seek(f.time)}>
-                          <img
-                            src={f.image}
-                            alt={`Evidence at ${time(f.time)}`}
-                          />
-                          <span>{time(f.time)}</span>
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="empty-evidence">
-                <div className="empty-orbit">
-                  <ScanLine size={27} />
-                </div>
-                <p>Choose a recording and run your first observation.</p>
-                <span>
-                  The agent links its findings to the moments that support them.
-                </span>
-              </div>
-            )}
-          </section>
           <footer>
             <span>LOOKOUT / JUNCTION 2026</span>
             <span>Observe carefully. Act with evidence.</span>
