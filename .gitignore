@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env*
+!.env.example
+runs/
+evals/recordings/
+apps/web/public/recordings/
+*.tsbuildinfo
+.turbo/
