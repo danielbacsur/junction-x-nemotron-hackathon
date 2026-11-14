@@ -112,3 +112,46 @@ export function validateEvidence(verdict: Verdict, frames: Frame[]): Verdict {
     ),
   };
 }
+
+export function validateOrder(
+  verdict: Verdict,
+  frames: Frame[],
+  ids: string[],
+): Verdict {
+  const times = new Map(frames.map((f) => [f.id, f.time]));
+  let previous = -Infinity,
+    changed = false;
+  const steps = ids
+    .map((id) => verdict.steps.find((s) => s.id === id)!)
+    .map((step) => {
+      if (step.status !== 'verified') return step;
+      const candidates = step.evidence
+        .map((e) => times.get(e))
+        .filter((t): t is number => t !== undefined && t >= previous)
+        .sort((a, b) => a - b);
+      if (!candidates.length) {
+        changed = true;
+        return {
+          ...step,
+          status: 'uncertain' as const,
+          observation:
+            step.observation +
+            ' The cited evidence does not establish the required order.',
+        };
+      }
+      previous = candidates[0];
+      return step;
+    });
+  return {
+    ...verdict,
+    steps,
+    ...(changed
+      ? {
+          summary:
+            'Some actions are visible, but their required order is not fully supported.',
+          guidance:
+            'Review the highlighted step or demonstrate the sequence again in order.',
+        }
+      : {}),
+  };
+}

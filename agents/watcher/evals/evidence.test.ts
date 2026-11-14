@@ -30,3 +30,34 @@ describe('evidence provenance', () => {
     expect(v.steps[0].evidence).toEqual(['f-0']);
   });
 });
+
+import { validateOrder } from '../agent/lib/contracts';
+test('later actions cannot be verified using earlier timestamps', () => {
+  const v = {
+    ...base,
+    steps: [
+      {
+        id: 'first',
+        status: 'verified' as const,
+        evidence: ['f-2'],
+        observation: 'first',
+      },
+      {
+        id: 'second',
+        status: 'verified' as const,
+        evidence: ['f-1'],
+        observation: 'second',
+      },
+    ],
+  };
+  const out = validateOrder(
+    v,
+    [
+      { id: 'f-1', time: 1, image: '' },
+      { id: 'f-2', time: 2, image: '' },
+    ],
+    ['first', 'second'],
+  );
+  expect(out.steps[1].status).toBe('uncertain');
+  expect(out.summary).toContain('not fully supported');
+});

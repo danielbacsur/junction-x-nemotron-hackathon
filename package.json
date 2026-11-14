@@ -10,7 +10,9 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "bun test",
-    "eval": "bun scripts/evaluate.ts"
+    "eval": "bun scripts/evaluate.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/bun": "latest",

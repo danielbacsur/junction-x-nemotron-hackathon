@@ -5,6 +5,7 @@ import {
   MODELS,
   verdictSchema,
   validateEvidence,
+  validateOrder,
   type Frame,
   type Analysis,
 } from './contracts';
@@ -134,7 +135,7 @@ export async function callModel(args: {
       'The model returned an invalid assessment. No steps were advanced. Please retry.',
     );
   }
-  const verdict = validateEvidence(parsed, args.frames);
+  let verdict = validateEvidence(parsed, args.frames);
   const ids = [...args.skill.matchAll(/^- ([\w-]+):/gm)].map((m) => m[1]);
   if (
     ids.length &&
@@ -145,6 +146,7 @@ export async function callModel(args: {
     throw new Error(
       'The model did not assess every procedure step correctly. No progress was accepted.',
     );
+  if (ids.length) verdict = validateOrder(verdict, args.frames, ids);
   const m = MODELS.find((m) => m.id === args.model)!;
   const inputTokens = raw.usage?.prompt_tokens ?? 0,
     outputTokens = raw.usage?.completion_tokens ?? 0;

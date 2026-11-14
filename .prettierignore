@@ -1,0 +1,7 @@
+bun.lock
+runs
+evals/recordings
+apps/web/public/recordings
+.next
+node_modules
+.env*
