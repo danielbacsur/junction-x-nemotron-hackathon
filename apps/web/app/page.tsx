@@ -44,13 +44,16 @@ export default function Home() {
     [phase, setPhase] = useState(''),
     [error, setError] = useState(''),
     [connected, setConnected] = useState(false),
-    [tab, setTab] = useState<'observe' | 'skills' | 'runs'>('observe'),
+    [tab, setTab] = useState<'observe' | 'skills' | 'runs' | 'evals'>(
+      'observe',
+    ),
     [runs, setRuns] = useState<Saved[]>([]),
     [live, setLive] = useState(false),
     [watch, setWatch] = useState(false),
     [position, setPosition] = useState(0),
     [duration, setDuration] = useState(0),
     [savedLabel, setSavedLabel] = useState(false);
+  const [evaluation, setEvaluation] = useState<any>(null);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -64,6 +67,9 @@ export default function Home() {
   latest.current = { skill, model };
   watchRef.current = watch;
   useEffect(() => {
+    fetch('/evaluations.json')
+      .then((r) => r.json())
+      .then(setEvaluation);
     fetch('/api/skills')
       .then((r) => r.json())
       .then((s) => {
@@ -383,6 +389,7 @@ export default function Home() {
             { id: 'observe', icon: ScanLine, label: 'Observation studio' },
             { id: 'skills', icon: FileCode2, label: 'Skills' },
             { id: 'runs', icon: Clock, label: 'Run history' },
+            { id: 'evals', icon: FlaskConical, label: 'Evaluations' },
           ].map((n) => (
             <button
               key={n.id}
@@ -424,7 +431,9 @@ export default function Home() {
                 ? 'Observation studio'
                 : tab === 'skills'
                   ? 'Skills'
-                  : 'Run history'}
+                  : tab === 'evals'
+                    ? 'Evaluations'
+                    : 'Run history'}
             </span>
           </div>
           <span className="version">
@@ -439,14 +448,18 @@ export default function Home() {
                 ? 'Give your camera a job.'
                 : tab === 'skills'
                   ? 'Procedures, in plain language.'
-                  : 'Every decision leaves evidence.'}
+                  : tab === 'evals'
+                    ? 'Trust is something you test.'
+                    : 'Every decision leaves evidence.'}
             </h1>
             <p>
               {tab === 'observe'
                 ? 'Turn everyday footage into actions you can verify.'
                 : tab === 'skills'
                   ? 'Define what to observe and what counts as done.'
-                  : 'Revisit real model runs, their evidence, and their cost.'}
+                  : tab === 'evals'
+                    ? 'The same footage. Different models. Observable results.'
+                    : 'Revisit real model runs, their evidence, and their cost.'}
             </p>
           </div>
           {tab === 'observe' && (
@@ -936,6 +949,72 @@ export default function Home() {
                   </button>
                 ))
               )}
+            </section>
+          )}
+          {tab === 'evals' && evaluation && (
+            <section className="evaluation">
+              <div className="eval-intro">
+                <span className="badge">REAL GATEWAY RUNS</span>
+                <p>{evaluation.note}</p>
+              </div>
+              <div className="eval-models">
+                {evaluation.models.map((m: any) => (
+                  <article key={m.model}>
+                    <span className="field-label">
+                      {m.model.startsWith('nvidia')
+                        ? 'DEFAULT · CHALLENGE MODEL'
+                        : m.model.startsWith('alibaba')
+                          ? 'ECONOMY OPTION'
+                          : 'EXPERIMENTAL'}
+                    </span>
+                    <h2>{MODELS.find((x) => x.id === m.model)?.name}</h2>
+                    <div className="eval-score">
+                      {m.positivePasses + m.negativePasses}
+                      <span> / {m.positiveCount + m.negativeCount}</span>
+                    </div>
+                    <div className="score-track">
+                      <i
+                        style={{
+                          width: `${(100 * (m.positivePasses + m.negativePasses)) / (m.positiveCount + m.negativeCount)}%`,
+                        }}
+                      />
+                    </div>
+                    <p>
+                      Complete recordings: {m.positivePasses}/{m.positiveCount}
+                      <br />
+                      No false completion: {m.negativePasses}/{m.negativeCount}
+                    </p>
+                    <div className="eval-stats">
+                      <span>
+                        {m.averageSeconds}s <small>avg. response</small>
+                      </span>
+                      <span>
+                        ${m.totalCost.toFixed(4)}{' '}
+                        <small>3 full recordings</small>
+                      </span>
+                    </div>
+                    {m.cases.map((c: any) => (
+                      <div className="eval-case" key={c.name}>
+                        {c.passed ? <Check size={14} /> : <X size={14} />}
+                        <span>
+                          {c.name.replaceAll('-', ' ')}
+                          {!c.passed && (
+                            <small>
+                              False completion: {c.falseAdvances.join(', ')}
+                            </small>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </article>
+                ))}
+              </div>
+              <p className="eval-note">
+                These tests assess step status on a small development set. They
+                do not establish general accuracy or prove every evidence
+                citation is correct. Nano VL was excluded after invalid output
+                and incorrect evidence.
+              </p>
             </section>
           )}
           <footer>
