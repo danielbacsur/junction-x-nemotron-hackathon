@@ -1,0 +1,707 @@
+{
+  "hook": {
+    "text": "\"Alert me if someone steals.\" Obvious to a person. But there's no obvious way to train a model for it.",
+    "file": "audio/vo/hook.mp3",
+    "duration": 7.059,
+    "words": [
+      {
+        "w": "\"Alert",
+        "s": 0,
+        "e": 0.522
+      },
+      {
+        "w": "me",
+        "s": 0.58,
+        "e": 0.662
+      },
+      {
+        "w": "if",
+        "s": 0.72,
+        "e": 0.789
+      },
+      {
+        "w": "someone",
+        "s": 0.836,
+        "e": 1.161
+      },
+      {
+        "w": "steals.\"",
+        "s": 1.196,
+        "e": 1.846
+      },
+      {
+        "w": "Obvious",
+        "s": 2.426,
+        "e": 2.856
+      },
+      {
+        "w": "to",
+        "s": 2.891,
+        "e": 2.961
+      },
+      {
+        "w": "a",
+        "s": 3.042,
+        "e": 3.077
+      },
+      {
+        "w": "person.",
+        "s": 3.135,
+        "e": 3.587
+      },
+      {
+        "w": "But",
+        "s": 3.901,
+        "e": 4.04
+      },
+      {
+        "w": "there's",
+        "s": 4.075,
+        "e": 4.284
+      },
+      {
+        "w": "no",
+        "s": 4.365,
+        "e": 4.551
+      },
+      {
+        "w": "obvious",
+        "s": 4.632,
+        "e": 4.981
+      },
+      {
+        "w": "way",
+        "s": 5.039,
+        "e": 5.201
+      },
+      {
+        "w": "to",
+        "s": 5.259,
+        "e": 5.306
+      },
+      {
+        "w": "train",
+        "s": 5.352,
+        "e": 5.55
+      },
+      {
+        "w": "a",
+        "s": 5.596,
+        "e": 5.619
+      },
+      {
+        "w": "model",
+        "s": 5.677,
+        "e": 5.933
+      },
+      {
+        "w": "for",
+        "s": 5.991,
+        "e": 6.107
+      },
+      {
+        "w": "it.",
+        "s": 6.165,
+        "e": 7.059
+      }
+    ]
+  },
+  "problem": {
+    "text": "No dataset defines theft. So cameras just record, and the tape gets reviewed after the loss.",
+    "file": "audio/vo/problem.mp3",
+    "duration": 6.362,
+    "words": [
+      {
+        "w": "No",
+        "s": 0,
+        "e": 0.197
+      },
+      {
+        "w": "dataset",
+        "s": 0.279,
+        "e": 0.708
+      },
+      {
+        "w": "defines",
+        "s": 0.743,
+        "e": 1.068
+      },
+      {
+        "w": "theft.",
+        "s": 1.115,
+        "e": 1.521
+      },
+      {
+        "w": "So",
+        "s": 1.834,
+        "e": 1.985
+      },
+      {
+        "w": "cameras",
+        "s": 2.055,
+        "e": 2.438
+      },
+      {
+        "w": "just",
+        "s": 2.496,
+        "e": 2.647
+      },
+      {
+        "w": "record,",
+        "s": 2.705,
+        "e": 3.262
+      },
+      {
+        "w": "and",
+        "s": 3.529,
+        "e": 3.68
+      },
+      {
+        "w": "the",
+        "s": 3.738,
+        "e": 3.808
+      },
+      {
+        "w": "tape",
+        "s": 3.855,
+        "e": 4.087
+      },
+      {
+        "w": "gets",
+        "s": 4.122,
+        "e": 4.284
+      },
+      {
+        "w": "reviewed",
+        "s": 4.354,
+        "e": 4.702
+      },
+      {
+        "w": "after",
+        "s": 4.737,
+        "e": 4.934
+      },
+      {
+        "w": "the",
+        "s": 4.981,
+        "e": 5.05
+      },
+      {
+        "w": "loss.",
+        "s": 5.097,
+        "e": 6.362
+      }
+    ]
+  },
+  "reveal": {
+    "text": "Meet Lookout. A visual harness for NVIDIA Nemotron.",
+    "file": "audio/vo/reveal.mp3",
+    "duration": 4.272,
+    "words": [
+      {
+        "w": "Meet",
+        "s": 0,
+        "e": 0.244
+      },
+      {
+        "w": "Lookout.",
+        "s": 0.325,
+        "e": 0.929
+      },
+      {
+        "w": "A",
+        "s": 1.242,
+        "e": 1.335
+      },
+      {
+        "w": "visual",
+        "s": 1.451,
+        "e": 1.858
+      },
+      {
+        "w": "harness",
+        "s": 1.95,
+        "e": 2.322
+      },
+      {
+        "w": "for",
+        "s": 2.368,
+        "e": 2.485
+      },
+      {
+        "w": "NVIDIA",
+        "s": 2.531,
+        "e": 2.984
+      },
+      {
+        "w": "Nemotron.",
+        "s": 3.042,
+        "e": 4.272
+      }
+    ]
+  },
+  "skill": {
+    "text": "Describe the behaviour in plain Markdown, step by step. That's a skill.",
+    "file": "audio/vo/skill.mp3",
+    "duration": 4.923,
+    "words": [
+      {
+        "w": "Describe",
+        "s": 0,
+        "e": 0.453
+      },
+      {
+        "w": "the",
+        "s": 0.476,
+        "e": 0.546
+      },
+      {
+        "w": "behaviour",
+        "s": 0.569,
+        "e": 0.94
+      },
+      {
+        "w": "in",
+        "s": 0.987,
+        "e": 1.045
+      },
+      {
+        "w": "plain",
+        "s": 1.091,
+        "e": 1.3
+      },
+      {
+        "w": "Markdown,",
+        "s": 1.358,
+        "e": 1.892
+      },
+      {
+        "w": "step",
+        "s": 2.032,
+        "e": 2.31
+      },
+      {
+        "w": "by",
+        "s": 2.368,
+        "e": 2.473
+      },
+      {
+        "w": "step.",
+        "s": 2.531,
+        "e": 2.961
+      },
+      {
+        "w": "That's",
+        "s": 3.332,
+        "e": 3.564
+      },
+      {
+        "w": "a",
+        "s": 3.599,
+        "e": 3.634
+      },
+      {
+        "w": "skill.",
+        "s": 3.669,
+        "e": 4.923
+      }
+    ]
+  },
+  "watch": {
+    "text": "Nemotron reads the frames, judges every step and its order, and takes a closer look when a moment is unclear.",
+    "file": "audio/vo/watch.mp3",
+    "duration": 6.873,
+    "words": [
+      {
+        "w": "Nemotron",
+        "s": 0,
+        "e": 0.499
+      },
+      {
+        "w": "reads",
+        "s": 0.569,
+        "e": 0.766
+      },
+      {
+        "w": "the",
+        "s": 0.813,
+        "e": 0.882
+      },
+      {
+        "w": "frames,",
+        "s": 0.94,
+        "e": 1.416
+      },
+      {
+        "w": "judges",
+        "s": 1.556,
+        "e": 1.927
+      },
+      {
+        "w": "every",
+        "s": 2.043,
+        "e": 2.31
+      },
+      {
+        "w": "step",
+        "s": 2.357,
+        "e": 2.612
+      },
+      {
+        "w": "and",
+        "s": 2.67,
+        "e": 2.74
+      },
+      {
+        "w": "its",
+        "s": 2.786,
+        "e": 2.902
+      },
+      {
+        "w": "order,",
+        "s": 2.949,
+        "e": 3.367
+      },
+      {
+        "w": "and",
+        "s": 3.564,
+        "e": 3.727
+      },
+      {
+        "w": "takes",
+        "s": 3.785,
+        "e": 4.017
+      },
+      {
+        "w": "a",
+        "s": 4.052,
+        "e": 4.087
+      },
+      {
+        "w": "closer",
+        "s": 4.168,
+        "e": 4.586
+      },
+      {
+        "w": "look",
+        "s": 4.656,
+        "e": 4.888
+      },
+      {
+        "w": "when",
+        "s": 4.934,
+        "e": 5.074
+      },
+      {
+        "w": "a",
+        "s": 5.108,
+        "e": 5.132
+      },
+      {
+        "w": "moment",
+        "s": 5.213,
+        "e": 5.538
+      },
+      {
+        "w": "is",
+        "s": 5.608,
+        "e": 5.735
+      },
+      {
+        "w": "unclear.",
+        "s": 5.805,
+        "e": 6.873
+      }
+    ]
+  },
+  "alert": {
+    "text": "When it happens, you get an alert, with timestamped proof.",
+    "file": "audio/vo/alert.mp3",
+    "duration": 3.669,
+    "words": [
+      {
+        "w": "When",
+        "s": 0,
+        "e": 0.174
+      },
+      {
+        "w": "it",
+        "s": 0.209,
+        "e": 0.267
+      },
+      {
+        "w": "happens,",
+        "s": 0.325,
+        "e": 0.685
+      },
+      {
+        "w": "you",
+        "s": 0.708,
+        "e": 0.778
+      },
+      {
+        "w": "get",
+        "s": 0.848,
+        "e": 0.952
+      },
+      {
+        "w": "an",
+        "s": 0.998,
+        "e": 1.057
+      },
+      {
+        "w": "alert,",
+        "s": 1.115,
+        "e": 1.591
+      },
+      {
+        "w": "with",
+        "s": 1.823,
+        "e": 1.985
+      },
+      {
+        "w": "timestamped",
+        "s": 2.02,
+        "e": 2.682
+      },
+      {
+        "w": "proof.",
+        "s": 2.728,
+        "e": 3.669
+      }
+    ]
+  },
+  "edit": {
+    "text": "Change a sentence, and the monitor changes with it.",
+    "file": "audio/vo/edit.mp3",
+    "duration": 2.786,
+    "words": [
+      {
+        "w": "Change",
+        "s": 0,
+        "e": 0.348
+      },
+      {
+        "w": "a",
+        "s": 0.372,
+        "e": 0.395
+      },
+      {
+        "w": "sentence,",
+        "s": 0.464,
+        "e": 0.929
+      },
+      {
+        "w": "and",
+        "s": 0.952,
+        "e": 1.033
+      },
+      {
+        "w": "the",
+        "s": 1.068,
+        "e": 1.138
+      },
+      {
+        "w": "monitor",
+        "s": 1.173,
+        "e": 1.509
+      },
+      {
+        "w": "changes",
+        "s": 1.567,
+        "e": 1.904
+      },
+      {
+        "w": "with",
+        "s": 1.95,
+        "e": 2.113
+      },
+      {
+        "w": "it.",
+        "s": 2.148,
+        "e": 2.786
+      }
+    ]
+  },
+  "cards": {
+    "text": "No dataset. No training. No ML team.",
+    "file": "audio/vo/cards.mp3",
+    "duration": 3.762,
+    "words": [
+      {
+        "w": "No",
+        "s": 0,
+        "e": 0.197
+      },
+      {
+        "w": "dataset.",
+        "s": 0.267,
+        "e": 0.94
+      },
+      {
+        "w": "No",
+        "s": 1.068,
+        "e": 1.231
+      },
+      {
+        "w": "training.",
+        "s": 1.3,
+        "e": 1.834
+      },
+      {
+        "w": "No",
+        "s": 2.148,
+        "e": 2.31
+      },
+      {
+        "w": "ML",
+        "s": 2.392,
+        "e": 2.67
+      },
+      {
+        "w": "team.",
+        "s": 2.752,
+        "e": 3.762
+      }
+    ]
+  },
+  "business": {
+    "text": "Loss prevention. Packing accuracy. Safety procedures. The people who know the rule write the monitor.",
+    "file": "audio/vo/business.mp3",
+    "duration": 6.177,
+    "words": [
+      {
+        "w": "Loss",
+        "s": 0,
+        "e": 0.313
+      },
+      {
+        "w": "prevention.",
+        "s": 0.372,
+        "e": 0.975
+      },
+      {
+        "w": "Packing",
+        "s": 1.091,
+        "e": 1.498
+      },
+      {
+        "w": "accuracy.",
+        "s": 1.556,
+        "e": 2.229
+      },
+      {
+        "w": "Safety",
+        "s": 2.426,
+        "e": 2.786
+      },
+      {
+        "w": "procedures.",
+        "s": 2.844,
+        "e": 3.529
+      },
+      {
+        "w": "The",
+        "s": 3.901,
+        "e": 4.017
+      },
+      {
+        "w": "people",
+        "s": 4.075,
+        "e": 4.331
+      },
+      {
+        "w": "who",
+        "s": 4.354,
+        "e": 4.458
+      },
+      {
+        "w": "know",
+        "s": 4.516,
+        "e": 4.644
+      },
+      {
+        "w": "the",
+        "s": 4.69,
+        "e": 4.76
+      },
+      {
+        "w": "rule",
+        "s": 4.807,
+        "e": 5.016
+      },
+      {
+        "w": "write",
+        "s": 5.039,
+        "e": 5.224
+      },
+      {
+        "w": "the",
+        "s": 5.248,
+        "e": 5.317
+      },
+      {
+        "w": "monitor.",
+        "s": 5.352,
+        "e": 6.177
+      }
+    ]
+  },
+  "end": {
+    "text": "If you can describe it, Lookout can watch for it.",
+    "file": "audio/vo/end.mp3",
+    "duration": 2.694,
+    "words": [
+      {
+        "w": "If",
+        "s": 0,
+        "e": 0.163
+      },
+      {
+        "w": "you",
+        "s": 0.209,
+        "e": 0.29
+      },
+      {
+        "w": "can",
+        "s": 0.337,
+        "e": 0.441
+      },
+      {
+        "w": "describe",
+        "s": 0.488,
+        "e": 0.894
+      },
+      {
+        "w": "it,",
+        "s": 0.929,
+        "e": 1.103
+      },
+      {
+        "w": "Lookout",
+        "s": 1.231,
+        "e": 1.614
+      },
+      {
+        "w": "can",
+        "s": 1.66,
+        "e": 1.776
+      },
+      {
+        "w": "watch",
+        "s": 1.834,
+        "e": 2.043
+      },
+      {
+        "w": "for",
+        "s": 2.101,
+        "e": 2.252
+      },
+      {
+        "w": "it.",
+        "s": 2.299,
+        "e": 2.694
+      }
+    ]
+  }
+}

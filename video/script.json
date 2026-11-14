@@ -1,0 +1,115 @@
+{
+  "voice": {
+    "id": "nPczCjzI2devNBz1zQrb",
+    "name": "Brian"
+  },
+  "model": "eleven_multilingual_v2",
+  "settings": {
+    "stability": 0.45,
+    "similarity_boost": 0.8,
+    "style": 0.2,
+    "use_speaker_boost": true,
+    "speed": 1.04
+  },
+  "segments": [
+    {
+      "id": "hook",
+      "text": "\"Alert me if someone steals.\" Obvious to a person. But there's no obvious way to train a model for it."
+    },
+    {
+      "id": "problem",
+      "text": "No dataset defines theft. So cameras just record, and the tape gets reviewed after the loss."
+    },
+    {
+      "id": "reveal",
+      "text": "Meet Lookout. A visual harness for NVIDIA Nemotron."
+    },
+    {
+      "id": "skill",
+      "text": "Describe the behaviour in plain Markdown, step by step. That's a skill."
+    },
+    {
+      "id": "watch",
+      "text": "Nemotron reads the frames, judges every step and its order, and takes a closer look when a moment is unclear."
+    },
+    {
+      "id": "alert",
+      "text": "When it happens, you get an alert, with timestamped proof."
+    },
+    {
+      "id": "edit",
+      "text": "Change a sentence, and the monitor changes with it."
+    },
+    {
+      "id": "cards",
+      "text": "No dataset. No training. No ML team."
+    },
+    {
+      "id": "business",
+      "text": "Loss prevention. Packing accuracy. Safety procedures. The people who know the rule write the monitor."
+    },
+    {
+      "id": "end",
+      "text": "If you can describe it, Lookout can watch for it."
+    }
+  ],
+  "music": {
+    "prompt": "Dynamic modern tech product launch ad music. Driving electronic beat at 122 BPM, punchy kick and tight claps, warm pulsing bass, bright plucky synth arpeggios, confident and optimistic. Short filtered intro, the full beat drops around 9 seconds, keeps high energy, ends with a clean final hit. Instrumental only, no vocals."
+  },
+  "sfx": [
+    {
+      "id": "typing",
+      "text": "Fast typing on a laptop keyboard, crisp soft key presses, close microphone, dry, no background noise",
+      "duration": 4,
+      "influence": 0.6
+    },
+    {
+      "id": "click",
+      "text": "Single soft user interface button click, clean, dry, very short",
+      "duration": 0.5,
+      "influence": 0.7
+    },
+    {
+      "id": "whoosh",
+      "text": "Fast airy whoosh transition swipe, clean, short",
+      "duration": 0.8,
+      "influence": 0.6
+    },
+    {
+      "id": "impact",
+      "text": "Deep cinematic bass impact hit with a short tail, punchy, clean",
+      "duration": 1.6,
+      "influence": 0.6
+    },
+    {
+      "id": "alert",
+      "text": "Modern app alert notification chime, two bright urgent tones, clean, short",
+      "duration": 1.2,
+      "influence": 0.6
+    },
+    {
+      "id": "tick",
+      "text": "Subtle digital interface blip tick, tiny, clean, very short",
+      "duration": 0.5,
+      "influence": 0.7
+    },
+    {
+      "id": "rewind",
+      "text": "Video tape rewinding fast whirr, short, retro, clean",
+      "duration": 1.5,
+      "influence": 0.6
+    },
+    {
+      "id": "success",
+      "text": "Soft positive confirmation chime, single warm tone, clean, short",
+      "duration": 0.8,
+      "influence": 0.6
+    },
+    {
+      "id": "riser",
+      "text": "Short synth riser building tension, clean, ends abruptly",
+      "duration": 2,
+      "influence": 0.6
+    }
+  ]
+}
