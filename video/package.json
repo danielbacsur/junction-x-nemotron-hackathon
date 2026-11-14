@@ -2,9 +2,12 @@
   "name": "lookout-video",
   "private": true,
   "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts LookoutDemo out/lookout-demo.mp4",
     "audio:vo": "node scripts/audio.mjs vo",
     "audio:music": "node scripts/audio.mjs music",
     "audio:sfx": "node scripts/audio.mjs sfx --force",
+    "audio:sfx:local": "python3 scripts/sfx.py",
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
