@@ -15,6 +15,25 @@ export async function extractFrames(
     video.onerror = () =>
       reject(new Error('This video cannot be decoded. Try an MP4 recording.'));
   });
+  // MediaRecorder WebM files may omit duration until the decoder seeks to EOF.
+  if (!Number.isFinite(video.duration)) {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              'Could not read recording duration. Try exporting as MP4.',
+            ),
+          ),
+        10000,
+      );
+      video.onseeked = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      video.currentTime = 1e10;
+    });
+  }
   if (video.duration > 120) {
     video.removeAttribute('src');
     video.load();
