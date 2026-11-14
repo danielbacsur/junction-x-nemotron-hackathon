@@ -19,8 +19,8 @@ import {
 } from './scenes/Watch';
 import { said, scenes, type SceneId } from './timeline';
 
-// Set to true once public/audio/music.mp3 exists.
-export const MUSIC = false;
+// False renders without the music bed (public/audio/music.mp3).
+export const MUSIC = true;
 
 export type Sound = {
   name:
@@ -56,7 +56,7 @@ const cue = (
 
 export const sounds: Sound[] = [
   // Hook: the rule is typed, then two verdicts land.
-  cue('hook', HOOK_TYPE_FROM, 'typing', 0.5, {
+  cue('hook', HOOK_TYPE_FROM, 'typing', 0.34, {
     length: HOOK_TYPE_TO - HOOK_TYPE_FROM,
   }),
   cue('hook', said('hook', 'Obvious') - 6, 'whoosh', 0.3),
@@ -70,20 +70,20 @@ export const sounds: Sound[] = [
   cue('problem', said('problem', 'theft') - 4, 'tick', 0.6, { rate: 0.55 }),
   cue('problem', said('problem', 'tape') - 10, 'whoosh', 0.35),
   cue('problem', said('problem', 'reviewed') - 6, 'rewind', 0.42),
-  cue('problem', said('problem', 'loss') + 14, 'impact', 0.7),
+  cue('problem', said('problem', 'loss') + 14, 'impact', 0.5),
   cue('problem', scenes.problem.duration - 70, 'riser', 0.32),
 
   // Reveal
-  cue('reveal', 2, 'impact', 0.85, { rate: 0.9 }),
+  cue('reveal', 2, 'impact', 0.68, { rate: 0.9 }),
   cue('reveal', said('reveal', 'A') - 4, 'whoosh', 0.28),
 
   // Skill: typed, saved.
   cue('skill', 0, 'whoosh', 0.3),
-  cue('skill', SKILL_TYPE_FROM, 'typing', 0.5, {
+  cue('skill', SKILL_TYPE_FROM, 'typing', 0.34, {
     length: SKILL_TYPE_TO - SKILL_TYPE_FROM,
     skip: 20,
   }),
-  cue('skill', SKILL_SAVE, 'click', 0.85),
+  cue('skill', SKILL_SAVE, 'click', 0.62),
   cue('skill', SKILL_SAVE + 6, 'success', 0.45),
 
   // Watch: frames are read, steps are judged, one moment gets a closer look.
@@ -103,12 +103,12 @@ export const sounds: Sound[] = [
   cue('alert', ALERT_IN, 'alert', 0.7),
   cue('alert', ALERT_PROOF[0], 'tick', 0.4),
   cue('alert', ALERT_PROOF[1], 'tick', 0.4, { rate: 1.15 }),
-  cue('alert', ALERT_CLICK, 'click', 0.85),
+  cue('alert', ALERT_CLICK, 'click', 0.62),
 
   // Edit
   cue('edit', 0, 'whoosh', 0.3),
   cue('edit', EDIT_SELECT, 'tick', 0.3),
-  cue('edit', EDIT_TYPE_FROM, 'typing', 0.5, {
+  cue('edit', EDIT_TYPE_FROM, 'typing', 0.34, {
     length: EDIT_TYPE_TO - EDIT_TYPE_FROM,
     skip: 90,
   }),
@@ -116,7 +116,7 @@ export const sounds: Sound[] = [
 
   // Cards: one hit per card.
   ...CARD_STARTS.map((frame, i) =>
-    cue('cards', frame, 'impact', 0.72, { rate: [1, 1.1, 0.9][i] }),
+    cue('cards', frame, 'impact', 0.55, { rate: [1, 1.1, 0.9][i] }),
   ),
   ...CARD_STARTS.map((frame) => cue('cards', frame - 5, 'whoosh', 0.3)),
 

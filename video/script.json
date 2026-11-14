@@ -54,7 +54,83 @@
     }
   ],
   "music": {
-    "prompt": "Dynamic modern tech product launch ad music. Driving electronic beat at 122 BPM, punchy kick and tight claps, warm pulsing bass, bright plucky synth arpeggios, confident and optimistic. Short filtered intro, the full beat drops around 9 seconds, keeps high energy, ends with a clean final hit. Instrumental only, no vocals."
+    "prompt": "Dynamic modern tech product launch ad music. Driving electronic beat at 122 BPM, punchy kick and tight claps, warm pulsing bass, bright plucky synth arpeggios, confident and optimistic. Short filtered intro, the full beat drops around 9 seconds, keeps high energy, ends with a clean final hit. Instrumental only, no vocals.",
+    "plan": {
+      "positive_global_styles": [
+        "modern tech product launch advert",
+        "electronic",
+        "driving",
+        "confident",
+        "optimistic",
+        "punchy drums",
+        "plucky synth arpeggios",
+        "warm pulsing bass",
+        "122 BPM",
+        "clean polished mix",
+        "instrumental"
+      ],
+      "negative_global_styles": [
+        "vocals",
+        "singing",
+        "spoken word",
+        "lo-fi",
+        "sad",
+        "slow",
+        "distorted guitars",
+        "orchestral"
+      ],
+      "sections": [
+        {
+          "section_name": "Intro",
+          "duration_ms": 15000,
+          "lines": [],
+          "positive_local_styles": [
+            "sparse and tense",
+            "filtered pulsing synth",
+            "soft ticking percussion",
+            "anticipation",
+            "rising build in the last two seconds"
+          ],
+          "negative_local_styles": ["full drums", "loud"]
+        },
+        {
+          "section_name": "Drop",
+          "duration_ms": 27900,
+          "lines": [],
+          "positive_local_styles": [
+            "starts with a big impact",
+            "full driving beat",
+            "punchy kick and tight claps",
+            "bright plucky arpeggio",
+            "energetic and forward-moving"
+          ],
+          "negative_local_styles": ["breakdown", "quiet"]
+        },
+        {
+          "section_name": "Peak",
+          "duration_ms": 11200,
+          "lines": [],
+          "positive_local_styles": [
+            "highest energy",
+            "bigger drums",
+            "bright uplifting lead synth",
+            "triumphant"
+          ],
+          "negative_local_styles": ["breakdown", "quiet"]
+        },
+        {
+          "section_name": "Outro",
+          "duration_ms": 6500,
+          "lines": [],
+          "positive_local_styles": [
+            "resolving final chord",
+            "one clean final hit",
+            "short ring out"
+          ],
+          "negative_local_styles": ["new melody", "fade in"]
+        }
+      ]
+    }
   },
   "sfx": [
     {

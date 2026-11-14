@@ -35,9 +35,12 @@ const components: Record<SceneId, FC> = {
   end: End,
 };
 
+// Everything is mixed 6 dB down to leave headroom; scripts/master.mjs brings
+// the finished file back up to broadcast loudness.
+const GAIN = 0.5;
 // Music sits low under the voice and comes up in the gaps and on the end card.
-const UNDER = 0.2;
-const OPEN = 0.42;
+const UNDER = 0.2 * GAIN;
+const OPEN = 0.46 * GAIN;
 const musicVolume = (frame: number) => {
   let level = OPEN;
   for (const scene of sceneList) {
@@ -81,7 +84,7 @@ export const Main = () => (
         name={`voice: ${scene.id}`}
         from={scene.from + scene.lead}
       >
-        <Html5Audio src={staticFile(scene.file)} volume={1} />
+        <Html5Audio src={staticFile(scene.file)} volume={GAIN} />
       </Sequence>
     ))}
     {sounds.map((sound, i) => (
@@ -98,13 +101,14 @@ export const Main = () => (
           volume={(frame) =>
             sound.length
               ? sound.volume *
+                GAIN *
                 interpolate(
                   frame,
                   [sound.length - 8, sound.length],
                   [1, 0],
                   clamp,
                 )
-              : sound.volume
+              : sound.volume * GAIN
           }
         />
       </Sequence>

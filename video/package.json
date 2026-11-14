@@ -3,12 +3,14 @@
   "private": true,
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts LookoutDemo out/lookout-demo.mp4",
+    "render": "remotion render src/index.ts LookoutDemo out/render.mp4 && node scripts/master.mjs out/render.mp4 out/lookout-demo.mp4",
     "audio:vo": "node scripts/audio.mjs vo",
     "audio:music": "node scripts/audio.mjs music",
     "audio:sfx": "node scripts/audio.mjs sfx --force",
     "audio:sfx:local": "python3 scripts/sfx.py",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "audio:music:local": "python3 scripts/music.py && node scripts/audio.mjs levels",
+    "audio:levels": "node scripts/audio.mjs levels"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.543",
