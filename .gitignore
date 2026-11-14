@@ -7,3 +7,4 @@ evals/recordings/
 apps/web/public/recordings/
 *.tsbuildinfo
 .turbo/
+.vercel
