@@ -74,13 +74,13 @@ export const Edit = () => {
         </div>
       </AbsoluteFill>
 
-      <div style={{ position: 'absolute', left: 1190, top: 150, width: 650 }}>
+      <div style={{ position: 'absolute', left: 1190, top: 196, width: 680 }}>
         <div
           style={{
-            fontSize: 70,
+            fontSize: 62,
             fontWeight: 600,
-            letterSpacing: -2.8,
-            lineHeight: 1.05,
+            letterSpacing: -2.4,
+            lineHeight: 1.08,
           }}
         >
           <div style={rise(frame, said('edit', 'Change') - 4)}>

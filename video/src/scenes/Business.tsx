@@ -62,7 +62,7 @@ export const Business = () => {
   return (
     <Shell duration={duration}>
       <AbsoluteFill style={{ alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 34, marginTop: 130 }}>
+        <div style={{ display: 'flex', gap: 34, marginTop: 168 }}>
           {USES.map((use, i) => {
             const enter = pop(frame, BUSINESS_CARDS[i], 14, 150);
             return (
@@ -146,12 +146,12 @@ export const Business = () => {
         </div>
         <div
           style={{
-            fontSize: 82,
+            fontSize: 68,
             fontWeight: 600,
-            letterSpacing: -3.2,
-            marginTop: 92,
+            letterSpacing: -2.6,
+            marginTop: 96,
             display: 'flex',
-            gap: 22,
+            gap: 18,
           }}
         >
           <span style={rise(frame, people, 26, 30)}>

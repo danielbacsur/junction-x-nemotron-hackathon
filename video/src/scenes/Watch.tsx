@@ -236,7 +236,7 @@ export const Watch = () => {
                     key={i}
                     style={{
                       position: 'absolute',
-                      left: 470 + i * 24.5,
+                      left: 556 + i * 16.5,
                       top: -16,
                       width: 5,
                       height: 12,

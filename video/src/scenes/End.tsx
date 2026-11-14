@@ -14,6 +14,7 @@ export const End = () => {
   const logo = pop(frame, 4, 13, 150);
   const glow = ramp(frame, 0, 120);
   const cta = pop(frame, END_CTA, 14, 170);
+  const wipe = ramp(frame, 0, 34, inOut);
   return (
     <AbsoluteFill
       style={{
@@ -21,6 +22,7 @@ export const End = () => {
         fontFamily: sans,
         color: C.ink,
         alignItems: 'center',
+        clipPath: wipe < 1 ? `circle(${wipe * 1250}px at 50% 50%)` : undefined,
       }}
     >
       {/* Soft colour rising from the floor */}
@@ -79,23 +81,29 @@ export const End = () => {
         <span style={rise(frame, describe, 26, 26)}>
           If you can describe it,
         </span>
-        <span style={{ ...rise(frame, watch, 26, 26), position: 'relative' }}>
+        <span style={rise(frame, watch, 26, 26)}>
           Lookout can{' '}
-          <span style={{ color: C.greenDeep, fontWeight: 600 }}>
-            watch for it.
-          </span>
           <span
             style={{
-              position: 'absolute',
-              right: 0,
-              bottom: -10,
-              height: 6,
-              width: 372 * underline,
-              marginRight: 372 * (1 - underline),
-              borderRadius: 6,
-              background: '#719857',
+              color: C.greenDeep,
+              fontWeight: 600,
+              position: 'relative',
+              display: 'inline-block',
             }}
-          />
+          >
+            watch for it.
+            <span
+              style={{
+                position: 'absolute',
+                left: 0,
+                bottom: -8,
+                height: 6,
+                width: `${underline * 100}%`,
+                borderRadius: 6,
+                background: '#719857',
+              }}
+            />
+          </span>
         </span>
       </div>
 

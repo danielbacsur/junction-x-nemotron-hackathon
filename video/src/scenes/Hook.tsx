@@ -31,7 +31,7 @@ const Card = ({
     <div
       style={{
         width: 590,
-        height: 300,
+        height: 330,
         borderRadius: 26,
         padding: '34px 38px',
         background: C.panel,
@@ -59,7 +59,7 @@ const Card = ({
           fontWeight: 600,
           letterSpacing: -1.6,
           lineHeight: 1.08,
-          marginTop: 26,
+          marginTop: 24,
         }}
       >
         {title}
@@ -86,7 +86,7 @@ export const Hook = () => {
       <AbsoluteFill style={{ alignItems: 'center' }}>
         <div
           style={{
-            marginTop: lerp(lift, 400, 196),
+            marginTop: lerp(lift, 400, 180),
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

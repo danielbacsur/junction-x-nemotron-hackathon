@@ -62,6 +62,7 @@ export const Problem = () => {
   });
   const rewinding = frame > reviewed - 6 && frame < loss + 22;
   const stamp = pop(frame, loss + 14, 11, 220);
+  const lift = ramp(frame, 8, 34, inOut) - ramp(frame, so - 16, 30, inOut);
   return (
     <Shell duration={duration}>
       {/* The camera wall */}
@@ -87,7 +88,21 @@ export const Problem = () => {
                 key={tile.label}
                 style={{
                   opacity: Math.min(1, enter * 1.5),
-                  transform: `translateY(${lerp(enter, 50, 0)}px) scale(${lerp(enter, 0.92, 1)})`,
+                  position: 'relative',
+                  zIndex: i === 1 ? 2 : 1,
+                  transform:
+                    i === 1
+                      ? `translateY(${lerp(enter, 50, 0) + lift * 150}px) scale(${lerp(enter, 0.92, 1) * lerp(lift, 1, 1.72)})`
+                      : `translateY(${lerp(enter, 50, 0)}px) scale(${lerp(enter, 0.92, 1)})`,
+                  filter:
+                    i !== 1 && lift > 0.02
+                      ? `brightness(${lerp(lift, 1, 0.45)})`
+                      : undefined,
+                  boxShadow:
+                    i === 1
+                      ? `0 ${lift * 50}px ${lift * 120}px rgba(0,0,0,${lift * 0.7})`
+                      : undefined,
+                  borderRadius: 16,
                 }}
               >
                 <CamScene

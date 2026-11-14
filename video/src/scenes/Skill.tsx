@@ -157,7 +157,7 @@ export const Skill = () => {
       <Pointer
         path={[
           { frame: SKILL_SAVE - 56, x: 1320, y: 1010 },
-          { frame: SKILL_SAVE - 6, x: 1020, y: 800 },
+          { frame: SKILL_SAVE - 6, x: 1030, y: 768 },
         ]}
         clickAt={SKILL_SAVE}
       />
