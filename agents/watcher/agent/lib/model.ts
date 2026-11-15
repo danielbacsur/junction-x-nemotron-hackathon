@@ -8,6 +8,7 @@ import {
   validateOrder,
   type Frame,
   type Analysis,
+  type Verdict,
 } from './contracts';
 const root = () =>
   process.cwd().endsWith('apps/web')
@@ -32,6 +33,7 @@ export async function callModel(args: {
       'AI Gateway is not connected. Add AI_GATEWAY_API_KEY to apps/web/.env.local.',
     );
   const start = Date.now();
+  const ids = [...args.skill.matchAll(/^- ([\w-]+):/gm)].map((m) => m[1]);
   const content: unknown[] = [
     {
       type: 'text',
@@ -46,7 +48,43 @@ export async function callModel(args: {
       },
       { type: 'image_url', image_url: { url: f.image } },
     );
+  // Nothing a model says is accepted until it parses, cites real frames,
+  // covers every step exactly once and respects their order.
+  const read = (raw: any) => {
+    const text = raw?.choices?.[0]?.message?.content;
+    if (typeof text !== 'string')
+      throw new Error(
+        'The model returned no usable answer. Try again with fewer frames.',
+      );
+    const clean = text
+      .replace(/<think>[\s\S]*?<\/think>/g, '')
+      .replace(/^```(?:json)?\s*/, '')
+      .replace(/\s*```$/, '')
+      .trim();
+    let parsed;
+    try {
+      parsed = verdictSchema.parse(
+        JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)),
+      );
+    } catch {
+      throw new Error(
+        'The model returned an invalid assessment. No steps were advanced. Please retry.',
+      );
+    }
+    const verdict = validateEvidence(parsed, args.frames);
+    if (!ids.length) return verdict;
+    if (
+      verdict.steps.length !== ids.length ||
+      new Set(verdict.steps.map((s) => s.id)).size !== ids.length ||
+      verdict.steps.some((s) => !ids.includes(s.id))
+    )
+      throw new Error(
+        'The model did not assess every procedure step correctly. No progress was accepted.',
+      );
+    return validateOrder(verdict, args.frames, ids);
+  };
   let raw: any;
+  let verdict!: Verdict;
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(
       'https://ai-gateway.vercel.sh/v1/chat/completions',
@@ -113,40 +151,15 @@ export async function callModel(args: {
       );
     }
     raw = await res.json();
-    break;
+    try {
+      verdict = read(raw);
+      break;
+    } catch (e) {
+      // Now and then a model answers with made-up step IDs or broken JSON.
+      // The same frames usually get a valid answer on the next try.
+      if (attempt === 2) throw e;
+    }
   }
-  const text = raw?.choices?.[0]?.message?.content;
-  if (typeof text !== 'string')
-    throw new Error(
-      'The model returned no usable answer. Try again with fewer frames.',
-    );
-  const clean = text
-    .replace(/<think>[\s\S]*?<\/think>/g, '')
-    .replace(/^```(?:json)?\s*/, '')
-    .replace(/\s*```$/, '')
-    .trim();
-  const first = clean.indexOf('{'),
-    last = clean.lastIndexOf('}');
-  let parsed;
-  try {
-    parsed = verdictSchema.parse(JSON.parse(clean.slice(first, last + 1)));
-  } catch {
-    throw new Error(
-      'The model returned an invalid assessment. No steps were advanced. Please retry.',
-    );
-  }
-  let verdict = validateEvidence(parsed, args.frames);
-  const ids = [...args.skill.matchAll(/^- ([\w-]+):/gm)].map((m) => m[1]);
-  if (
-    ids.length &&
-    (verdict.steps.length !== ids.length ||
-      new Set(verdict.steps.map((s) => s.id)).size !== ids.length ||
-      verdict.steps.some((s) => !ids.includes(s.id)))
-  )
-    throw new Error(
-      'The model did not assess every procedure step correctly. No progress was accepted.',
-    );
-  if (ids.length) verdict = validateOrder(verdict, args.frames, ids);
   const m = MODELS.find((m) => m.id === args.model)!;
   const inputTokens = raw.usage?.prompt_tokens ?? 0,
     outputTokens = raw.usage?.completion_tokens ?? 0;
