@@ -17,6 +17,7 @@ import {
   Radio,
   ScanLine,
   Settings2,
+  Siren,
   Square,
   Upload,
   X,
@@ -24,13 +25,25 @@ import {
 import { MODELS, type Analysis, type Frame } from '@agent/lib/contracts';
 import { recordings } from '@agent/lib/catalog';
 import { reviewInterval } from '@agent/tools/review-footage';
+import { alertName, raisedAlert } from '@agent/tools/raise-alert';
 import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
 type Saved = Analysis & { source: string; skillText: string };
+type Alarm = {
+  name: string;
+  source: string;
+  evidence: { key: string; step: string; time: number; image?: string }[];
+};
 const time = (n: number) =>
   `${Math.floor(n / 60)
     .toString()
     .padStart(2, '0')}:${(n % 60).toFixed(1).padStart(4, '0')}`;
+// Up to three items spread across a list, so the frames an alert shows cover
+// the whole action rather than only its start.
+const spread = <T,>(items: T[]) =>
+  items.length <= 3
+    ? items
+    : [items[0], items[Math.floor(items.length / 2)], items.at(-1)!];
 export default function Home() {
   const [skills, setSkills] = useState<Skill[]>([]),
     [skillId, setSkillId] = useState('pack'),
@@ -54,6 +67,7 @@ export default function Home() {
     [duration, setDuration] = useState(0),
     [savedLabel, setSavedLabel] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
+  const [alarm, setAlarm] = useState<Alarm | null>(null);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -115,9 +129,28 @@ export default function Home() {
       return next;
     });
   }
+  // An alert stays up until it is dismissed or the footage or skill changes,
+  // so a live camera keeps it after the moment has left the rolling window.
+  function raise(r: Analysis, text: string, fs: Frame[], from: string) {
+    const alert = raisedAlert(text, r.verdict);
+    if (!alert) return;
+    setAlarm({
+      name: alert.name,
+      source: from,
+      evidence: alert.steps.flatMap((s) =>
+        spread(s.evidence).map((id) => ({
+          key: `${s.id}-${id}`,
+          step: s.id,
+          time: r.frames.find((f) => f.id === id)?.time ?? 0,
+          image: fs.find((f) => f.id === id)?.image,
+        })),
+      ),
+    });
+  }
   function clear() {
     generation.current++;
     setResult(null);
+    setAlarm(null);
     setFrames([]);
     setError('');
     setSavedLabel(false);
@@ -200,6 +233,7 @@ export default function Home() {
       if (g !== generation.current) return;
       setResult(r);
       remember(r, source, text);
+      raise(r, text, all, title);
       setPhase('Observation complete');
     } catch (e) {
       if (g === generation.current)
@@ -298,6 +332,8 @@ export default function Home() {
         if (g === generation.current && stream.current) {
           setFrames(fs);
           setResult(r);
+          setError('');
+          raise(r, latest.current.skill, fs, 'Live camera');
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Observation failed');
@@ -345,6 +381,7 @@ export default function Home() {
       setSkillId(item.id);
       setSkill(item.markdown);
       setResult(null);
+      setAlarm(null);
       setTab('skills');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Teaching failed');
@@ -508,6 +545,40 @@ export default function Home() {
                   }}
                 />
               </div>
+              {alarm && (
+                <section className="alert-card" role="alert">
+                  <div className="alert-top">
+                    <span className="alert-label">
+                      <Siren size={15} /> ALERT
+                    </span>
+                    <span>{alarm.source}</span>
+                    <button
+                      title="Dismiss alert"
+                      onClick={() => setAlarm(null)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <h2>{alarm.name}</h2>
+                  <p>Every step of this skill was verified. Open the proof:</p>
+                  <div className="alert-evidence">
+                    {alarm.evidence.map((e) => (
+                      <button key={e.key} onClick={() => seek(e.time)}>
+                        {e.image && (
+                          <img
+                            src={e.image}
+                            alt={`Evidence at ${time(e.time)}`}
+                          />
+                        )}
+                        <span>
+                          <span className="event-time">{time(e.time)}</span>
+                          <strong>{e.step}</strong>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
               <div className="studio-grid">
                 <section className="visual-panel">
                   <div className="panel-top">
@@ -608,8 +679,14 @@ export default function Home() {
                     <span>
                       <Aperture size={16} /> AGENT
                     </span>
-                    <span className="badge">
-                      {busy ? 'Observing' : result ? 'Review ready' : 'Ready'}
+                    <span className={alarm ? 'badge raised' : 'badge'}>
+                      {busy
+                        ? 'Observing'
+                        : alarm
+                          ? 'Alert raised'
+                          : result
+                            ? 'Review ready'
+                            : 'Ready'}
                     </span>
                   </div>
                   <div className="agent-body">
@@ -636,7 +713,9 @@ export default function Home() {
                       <span>
                         {result
                           ? `${verified} of ${steps.length} verified`
-                          : 'What the agent will look for'}
+                          : alertName(skill)
+                            ? 'Raises an alert if all of this is seen'
+                            : 'What the agent will look for'}
                       </span>
                       <button
                         title="Edit skill"
@@ -864,12 +943,14 @@ export default function Home() {
                     setSkill(e.target.value);
                     generation.current++;
                     setResult(null);
+                    setAlarm(null);
                   }}
                   spellCheck={false}
                 />
                 <div className="editor-footer">
                   <span>
-                    Format: - step-id: observable completion condition
+                    Format: - step-id: observable completion condition. Add an
+                    "Alert: name" line to raise an alert.
                   </span>
                   <button
                     className="button primary"
@@ -925,6 +1006,7 @@ export default function Home() {
                       setSkill(r.skillText);
                       setResult(r);
                       setSavedLabel(true);
+                      raise(r, r.skillText, [], 'Saved observation');
                     }}
                   >
                     <span className="history-icon">
@@ -944,6 +1026,9 @@ export default function Home() {
                       }
                       /{r.verdict.steps.length} verified
                     </span>
+                    {raisedAlert(r.skillText, r.verdict) && (
+                      <span className="alert-tag">Alert</span>
+                    )}
                     <span>${r.cost.toFixed(4)}</span>
                     <ChevronRight size={16} />
                   </button>
