@@ -1350,12 +1350,25 @@ footer {
 }
 .recording.record-now {
   margin-top: 6px;
-  border: 1px dashed #dfe5d8;
+  background: #fff5f1;
+  border: 1px dashed #efc3b6;
+}
+.recording.record-now:hover {
+  background: #ffece5;
 }
 .recording.record-now .recording-number {
   display: flex;
-  color: #c9523b;
-  background: #fdebe5;
+  color: #fff;
+  background: #dd5f47;
+}
+.recording.record-now strong {
+  color: #b8452f;
+}
+.recording.record-now small {
+  color: #b98577;
+}
+.recording.record-now > svg {
+  color: #dca192;
 }
 .recording.record-now > svg {
   margin-left: auto;

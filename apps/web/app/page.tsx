@@ -102,6 +102,7 @@ export default function Home() {
     audio = useRef<AudioContext | null>(null),
     alerted = useRef(-Infinity),
     captured = useRef(0),
+    skillBefore = useRef<string | null>(null),
     latest = useRef({ skill, model });
   latest.current = { skill, model };
   watchRef.current = watch;
@@ -325,6 +326,14 @@ export default function Home() {
     armSound();
     alerted.current = -Infinity;
     clear();
+    // The observer is there to raise alerts, so it opens on the theft skill.
+    // The skill in use before comes back when the observer is left.
+    const theft = observe && skills.find((s) => s.id === 'theft');
+    if (theft) {
+      skillBefore.current = skillId;
+      setSkillId(theft.id);
+      setSkill(theft.markdown);
+    }
     setError('');
     try {
       const s = await navigator.mediaDevices.getUserMedia({
@@ -390,6 +399,12 @@ export default function Home() {
     setWatch(false);
     setLive(false);
     setMode('recordings');
+    const back = skills.find((s) => s.id === skillBefore.current);
+    skillBefore.current = null;
+    if (back) {
+      setSkillId(back.id);
+      setSkill(back.markdown);
+    }
     // What the observer saw does not belong to the recording shown next.
     setResult(null);
     setFrames([]);
