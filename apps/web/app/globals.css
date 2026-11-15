@@ -354,7 +354,7 @@ h1 {
   width: 100%;
   aspect-ratio: 1.5;
   object-fit: contain;
-  max-height: 500px;
+  max-height: 600px;
 }
 .video-corner {
   position: absolute;

@@ -90,6 +90,7 @@ export default function Home() {
   const [evaluation, setEvaluation] = useState<any>(null);
   const [alarm, setAlarm] = useState<Alarm | null>(null);
   const [captures, setCaptures] = useState<Clip[]>([]);
+  const [shape, setShape] = useState(1.5);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -750,9 +751,15 @@ export default function Home() {
                       onDurationChange={(e) =>
                         setDuration(e.currentTarget.duration)
                       }
-                      onLoadedMetadata={(e) =>
-                        setDuration(e.currentTarget.duration)
-                      }
+                      onLoadedMetadata={(e) => {
+                        const v = e.currentTarget;
+                        setDuration(v.duration);
+                        // The frame takes the footage's own shape, so a wide
+                        // camera is not shown between black bars.
+                        if (v.videoWidth && v.videoHeight)
+                          setShape(v.videoWidth / v.videoHeight);
+                      }}
+                      style={{ aspectRatio: shape }}
                     />
                     <div className="video-corner">
                       <ScanLine size={14} />
