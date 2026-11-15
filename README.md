@@ -37,7 +37,7 @@ Alert: Possible theft
 - conceal: The person hides an item they were holding inside clothing on their own body.
 ```
 
-Alerts use the same checks as any other skill: a step needs real frames as evidence, and the steps must be seen in order. On a live camera a raised alert stays on screen until it is dismissed, even after the moment has left the rolling window. `agents/watcher/agent/skills/theft.md` is the example; edit it or write your own in the Skills tab.
+Alerts use the same checks as any other skill: a step needs real frames as evidence, and the steps must be seen in order. A raised alert flashes across the whole screen with a short sound. On a live camera it clears itself after a few seconds and can fire again ten seconds later; the same moment never raises it twice. On a recording the alert stays under the flash so its proof can be opened. `agents/watcher/agent/skills/theft.md` is the example; edit it or write your own in the Skills tab.
 
 ## Validation
 

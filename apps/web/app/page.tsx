@@ -32,6 +32,9 @@ type Saved = Analysis & { source: string; skillText: string };
 type Alarm = {
   name: string;
   source: string;
+  at: number;
+  // 'live' alerts clear themselves; 'quiet' ones (a reopened run) do not flash.
+  mode: 'live' | 'recorded' | 'quiet';
   evidence: { key: string; step: string; time: number; image?: string }[];
 };
 const time = (n: number) =>
@@ -84,6 +87,8 @@ export default function Home() {
     liveFrames = useRef<Frame[]>([]),
     started = useRef(0),
     watchRef = useRef(false),
+    audio = useRef<AudioContext | null>(null),
+    alerted = useRef(-Infinity),
     latest = useRef({ skill, model });
   latest.current = { skill, model };
   watchRef.current = watch;
@@ -138,22 +143,69 @@ export default function Home() {
   }
   // An alert stays up until it is dismissed or the footage or skill changes,
   // so a live camera keeps it after the moment has left the rolling window.
-  function raise(r: Analysis, text: string, fs: Frame[], from: string) {
+  // Browsers only allow sound after a click, so the context is made on one.
+  function armSound() {
+    audio.current ??= new AudioContext();
+    if (audio.current.state === 'suspended') audio.current.resume();
+  }
+  function siren() {
+    const ctx = audio.current;
+    if (!ctx) return;
+    [0, 0.26, 0.52].forEach((delay, i) => {
+      const tone = ctx.createOscillator(),
+        gain = ctx.createGain(),
+        at = ctx.currentTime + delay;
+      tone.type = 'square';
+      tone.frequency.value = i % 2 ? 660 : 880;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.12, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+      tone.connect(gain).connect(ctx.destination);
+      tone.start(at);
+      tone.stop(at + 0.24);
+    });
+  }
+  function raise(
+    r: Analysis,
+    text: string,
+    fs: Frame[],
+    from: string,
+    mode: Alarm['mode'],
+  ) {
     const alert = raisedAlert(text, r.verdict);
     if (!alert) return;
+    const when = (id: string) => r.frames.find((f) => f.id === id)?.time ?? 0;
+    if (mode === 'live') {
+      // The rolling window shows the same moment to several looks in a row.
+      // It may raise one alert, and the next can fire ten seconds later.
+      const now = fs.at(-1)?.time ?? 0;
+      const latest = Math.max(
+        ...alert.steps.flatMap((s) => s.evidence.map(when)),
+      );
+      if (now < alerted.current + 10 || latest <= alerted.current) return;
+      alerted.current = now;
+    }
+    if (mode !== 'quiet') siren();
     setAlarm({
       name: alert.name,
       source: from,
+      at: Date.now(),
+      mode,
       evidence: alert.steps.flatMap((s) =>
         spread(s.evidence).map((id) => ({
           key: `${s.id}-${id}`,
           step: s.id,
-          time: r.frames.find((f) => f.id === id)?.time ?? 0,
+          time: when(id),
           image: fs.find((f) => f.id === id)?.image,
         })),
       ),
     });
   }
+  useEffect(() => {
+    if (alarm?.mode !== 'live') return;
+    const timer = setTimeout(() => setAlarm(null), 9000);
+    return () => clearTimeout(timer);
+  }, [alarm]);
   function clear() {
     generation.current++;
     setResult(null);
@@ -198,6 +250,7 @@ export default function Home() {
   }
   async function analyze() {
     if (running.current || !skill) return;
+    armSound();
     running.current = true;
     setBusy(true);
     setError('');
@@ -240,7 +293,7 @@ export default function Home() {
       if (g !== generation.current) return;
       setResult(r);
       remember(r, source, text);
-      raise(r, text, all, title);
+      raise(r, text, all, title, 'recorded');
       setPhase('Observation complete');
     } catch (e) {
       if (g === generation.current)
@@ -252,6 +305,8 @@ export default function Home() {
   }
   async function startCamera() {
     if (stream.current || running.current) return;
+    armSound();
+    alerted.current = -Infinity;
     clear();
     setError('');
     try {
@@ -340,7 +395,7 @@ export default function Home() {
           setFrames(fs);
           setResult(r);
           setError('');
-          raise(r, latest.current.skill, fs, 'Live camera');
+          raise(r, latest.current.skill, fs, 'Live camera', 'live');
         }
       } catch (e) {
         // One failed look should not end the watch. Stop only when the
@@ -416,6 +471,18 @@ export default function Home() {
     result?.verdict.steps.filter((s) => s.status === 'verified').length || 0;
   return (
     <div className="shell">
+      {alarm && alarm.mode !== 'quiet' && (
+        <div className="alert-flash" key={alarm.at} aria-hidden>
+          <div>
+            <Siren size={56} />
+            <span>ALERT</span>
+            <strong>{alarm.name}</strong>
+            <small>
+              {alarm.source} · {time(alarm.evidence.at(-1)?.time ?? 0)}
+            </small>
+          </div>
+        </div>
+      )}
       <aside className="sidebar">
         <a className="brand" href="/">
           <Aperture size={29} />
@@ -556,7 +623,13 @@ export default function Home() {
                 />
               </div>
               {alarm && (
-                <section className="alert-card" role="alert">
+                <section
+                  className={
+                    alarm.mode === 'live' ? 'alert-card fading' : 'alert-card'
+                  }
+                  key={alarm.at}
+                  role="alert"
+                >
                   <div className="alert-top">
                     <span className="alert-label">
                       <Siren size={15} /> ALERT
@@ -1016,7 +1089,7 @@ export default function Home() {
                       setSkill(r.skillText);
                       setResult(r);
                       setSavedLabel(true);
-                      raise(r, r.skillText, [], 'Saved observation');
+                      raise(r, r.skillText, [], 'Saved observation', 'quiet');
                     }}
                   >
                     <span className="history-icon">
