@@ -10,7 +10,7 @@ bun install
 bun run dev
 ```
 
-Open http://localhost:3020 for development. The verified production build runs with `bun run --cwd apps/web start` at http://localhost:3021. Select a supplied recording, upload a video, or enable the camera. Choose a Markdown procedure and Analyze recording. The agent observes frames, can request a denser review, and returns timestamped evidence. Learn a skill drafts an editable procedure from footage; accept it in the skill editor before use.
+Open http://localhost:3020 for development. The verified production build runs with `bun run --cwd apps/web start` at http://localhost:3021. The studio has two separate modes. Recordings replays a supplied or uploaded video, or one captured with Record now: choose a Markdown procedure and Analyze recording. Observer watches the camera as it happens and raises alerts in realtime. The agent observes frames, can request a denser review, and returns timestamped evidence. Learn a skill drafts an editable procedure from footage; accept it in the skill editor before use.
 
 All inference uses https://ai-gateway.vercel.sh. Google BYOK is sent server-side when configured. A successful Gemini response alone does not prove Google BYOK was used; Gateway may fall back to its own credentials. The supplied Google credential was tested through both Google and Vertex Gateway routes; generation metadata reported `is_byok: false`. Current Gemini use is funded by Gateway credits.
 
@@ -54,7 +54,7 @@ Evaluation results are shown in the Evaluations tab. They are small development-
 
 One observation is active at a time. Source changes invalidate stale results. Each assessment includes explicit frame IDs. Unsupported evidence cannot advance a step. A recorded run may perform one denser review. Unobservable actions remain uncertain. Skills should distinguish historical actions from current conditions.
 
-Live camera observes a rolling set of frames while recording the full session locally for replay. Stop the camera to analyze the complete recording. Camera access requires browser permission. Server keys never reach the browser.
+Record now captures a clip locally and sends nothing; when stopped, the clip joins the recordings for this session and is analyzed like any other. The observer sends a rolling set of recent frames every few seconds and records nothing. Camera access requires browser permission. Server keys never reach the browser.
 
 ## Deployment
 

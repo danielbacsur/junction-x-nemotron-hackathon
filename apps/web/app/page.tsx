@@ -29,6 +29,14 @@ import { alertName, raisedAlert } from '@agent/tools/raise-alert';
 import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
 type Saved = Analysis & { source: string; skillText: string };
+type Clip = {
+  id: string;
+  title: string;
+  description: string;
+  src: string;
+  skill?: string;
+  duration: number;
+};
 type Alarm = {
   name: string;
   source: string;
@@ -73,11 +81,15 @@ export default function Home() {
     [runs, setRuns] = useState<Saved[]>([]),
     [live, setLive] = useState(false),
     [watch, setWatch] = useState(false),
+    [mode, setMode] = useState<'recordings' | 'camera' | 'observer'>(
+      'recordings',
+    ),
     [position, setPosition] = useState(0),
     [duration, setDuration] = useState(0),
     [savedLabel, setSavedLabel] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
   const [alarm, setAlarm] = useState<Alarm | null>(null);
+  const [captures, setCaptures] = useState<Clip[]>([]);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -89,6 +101,7 @@ export default function Home() {
     watchRef = useRef(false),
     audio = useRef<AudioContext | null>(null),
     alerted = useRef(-Infinity),
+    captured = useRef(0),
     latest = useRef({ skill, model });
   latest.current = { skill, model };
   watchRef.current = watch;
@@ -303,8 +316,12 @@ export default function Home() {
       setBusy(false);
     }
   }
-  async function startCamera() {
-    if (stream.current || running.current) return;
+  // The camera does one of two separate jobs. "Record now" captures a clip
+  // that joins the recordings, where it is analyzed afterwards like any
+  // other; no model sees it while it records. The observer watches the camera
+  // as it happens and records nothing.
+  async function startCamera(observe: boolean) {
+    if (stream.current) stopCamera();
     armSound();
     alerted.current = -Infinity;
     clear();
@@ -316,7 +333,8 @@ export default function Home() {
       });
       stream.current = s;
       setLive(true);
-      setTitle('Live camera');
+      setMode(observe ? 'observer' : 'camera');
+      setWatch(observe);
       started.current = performance.now();
       liveFrames.current = [];
       setTimeout(() => {
@@ -325,26 +343,35 @@ export default function Home() {
           video.current.play();
         }
       }, 0);
-      const chunks: Blob[] = [];
-      const mime = ['video/mp4', 'video/webm;codecs=vp8'].find((m) =>
-        MediaRecorder.isTypeSupported(m),
-      );
-      const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
-      r.ondataavailable = (e) => {
-        if (e.data.size) chunks.push(e.data);
-      };
-      r.onstop = () => {
-        if (chunks.length) {
-          const url = URL.createObjectURL(
-            new Blob(chunks, { type: r.mimeType }),
-          );
-          setSource(url);
-          setTitle('Camera recording');
+      if (!observe) {
+        const chunks: Blob[] = [];
+        const mime = ['video/mp4', 'video/webm;codecs=vp8'].find((m) =>
+          MediaRecorder.isTypeSupported(m),
+        );
+        const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
+        r.ondataavailable = (e) => {
+          if (e.data.size) chunks.push(e.data);
+        };
+        const began = performance.now();
+        r.onstop = () => {
+          if (!chunks.length) return;
+          const clip: Clip = {
+            id: `capture-${++captured.current}`,
+            title: `Camera recording ${captured.current}`,
+            description: 'Recorded with the camera in this session.',
+            src: URL.createObjectURL(new Blob(chunks, { type: r.mimeType })),
+            duration: (performance.now() - began) / 1000,
+          };
+          setCaptures((old) => [...old, clip]);
+          // Show it right away, unless the observer has taken the camera.
+          if (stream.current) return;
+          setSource(clip.src);
+          setTitle(clip.title);
           if (video.current) video.current.srcObject = null;
-        }
-      };
-      r.start(1000);
-      recorder.current = r;
+        };
+        r.start(1000);
+        recorder.current = r;
+      }
     } catch (e) {
       stream.current?.getTracks().forEach((t) => t.stop());
       stream.current = null;
@@ -362,6 +389,12 @@ export default function Home() {
     generation.current++;
     setWatch(false);
     setLive(false);
+    setMode('recordings');
+    // What the observer saw does not belong to the recording shown next.
+    setResult(null);
+    setFrames([]);
+    setAlarm(null);
+    setPosition(0);
     if (recorder.current?.state === 'recording') {
       if (discard) recorder.current.onstop = null;
       recorder.current.stop();
@@ -375,11 +408,13 @@ export default function Home() {
     const timer = setInterval(async () => {
       const v = video.current;
       if (!v?.videoWidth) return;
-      if ((performance.now() - started.current) / 1000 >= 120) {
+      const elapsed = (performance.now() - started.current) / 1000;
+      // A recorded session is capped at two minutes; the observer is not.
+      if (recorder.current?.state === 'recording' && elapsed >= 120) {
         stopCamera();
         return;
       }
-      const f = cameraFrame(v, (performance.now() - started.current) / 1000);
+      const f = cameraFrame(v, elapsed);
       liveFrames.current = [...liveFrames.current, f].slice(-120);
       setPosition(f.time);
       if (!watchRef.current || running.current || liveFrames.current.length < 4)
@@ -395,14 +430,16 @@ export default function Home() {
           setFrames(fs);
           setResult(r);
           setError('');
-          raise(r, latest.current.skill, fs, 'Live camera', 'live');
+          raise(r, latest.current.skill, fs, 'Observer', 'live');
         }
       } catch (e) {
-        // One failed look should not end the watch. Stop only when the
-        // gateway itself is refusing, which will not fix itself.
+        // One failed look is not worth a message: the next one follows in
+        // seconds. Only a gateway that refuses is shown, and ends the watch.
         const message = e instanceof Error ? e.message : 'Observation failed';
-        setError(message);
-        if (/Gateway|not connected/.test(message)) setWatch(false);
+        if (/Gateway|not connected/.test(message)) {
+          setError(message);
+          setWatch(false);
+        }
       } finally {
         running.current = false;
         setBusy(false);
@@ -581,16 +618,16 @@ export default function Home() {
               <div className="studio-toolbar">
                 <div className="segmented">
                   <button
-                    className={!live ? 'selected' : ''}
-                    onClick={() => stopCamera()}
+                    className={mode !== 'observer' ? 'selected' : ''}
+                    onClick={() => mode === 'observer' && stopCamera()}
                   >
                     <Film size={15} /> Recordings
                   </button>
                   <button
-                    className={live ? 'selected' : ''}
-                    onClick={startCamera}
+                    className={mode === 'observer' ? 'selected' : ''}
+                    onClick={() => mode !== 'observer' && startCamera(true)}
                   >
-                    <Radio size={15} /> Live camera
+                    <Eye size={15} /> Observer
                   </button>
                 </div>
                 <div className="toolbar-actions">
@@ -667,9 +704,15 @@ export default function Home() {
                   <div className="panel-top">
                     <span>
                       <i className={'dot ' + (live ? 'red' : 'green')} />
-                      {live ? 'CAMERA LIVE' : 'REPLAY SOURCE'}
+                      {mode === 'observer'
+                        ? 'OBSERVER'
+                        : mode === 'camera'
+                          ? 'RECORDING NOW'
+                          : 'REPLAY SOURCE'}
                     </span>
-                    <span className="mono">{title}</span>
+                    <span className="mono">
+                      {live ? 'Browser camera' : title}
+                    </span>
                   </div>
                   <div className="video-wrap">
                     <video
@@ -698,7 +741,14 @@ export default function Home() {
                     />
                     <div className="video-corner">
                       <ScanLine size={14} />
-                      {live ? 'LIVE' : 'RECORDED'} <span>{time(position)}</span>
+                      {mode === 'observer'
+                        ? watch
+                          ? 'WATCHING'
+                          : 'PAUSED'
+                        : mode === 'camera'
+                          ? 'RECORDING'
+                          : 'RECORDED'}{' '}
+                      <span>{time(position)}</span>
                     </div>
                     {busy && (
                       <div className="analyzing">
@@ -710,15 +760,17 @@ export default function Home() {
                   <div className="film-meta">
                     <span>
                       <Clapperboard size={16} />{' '}
-                      {live
-                        ? 'Browser camera · recording locally'
-                        : `${duration ? duration.toFixed(1) : '—'} seconds · original footage`}
+                      {mode === 'observer'
+                        ? 'Browser camera · watched as it happens, not recorded'
+                        : mode === 'camera'
+                          ? 'Browser camera · recording locally, not analyzed'
+                          : `${duration ? duration.toFixed(1) : '—'} seconds · original footage`}
                     </span>
                     <span>Evidence stays linked to time</span>
                   </div>
                   {!live && (
                     <div className="recording-list">
-                      {recordings.map((r, i) => (
+                      {[...recordings, ...captures].map((r: Clip, i) => (
                         <button
                           className={
                             source === r.src
@@ -740,20 +792,58 @@ export default function Home() {
                           <ChevronRight size={14} />
                         </button>
                       ))}
+                      <button
+                        className="recording record-now"
+                        onClick={() => startCamera(false)}
+                        disabled={busy}
+                      >
+                        <span className="recording-number">
+                          <Radio size={13} />
+                        </span>
+                        <span>
+                          <strong>Record now</strong>
+                          <small>
+                            Capture a clip with the camera, then analyze it.
+                          </small>
+                        </span>
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
                   )}
-                  {live && (
+                  {mode === 'camera' && (
+                    <div className="camera-actions">
+                      <button
+                        className="button primary"
+                        onClick={() => stopCamera()}
+                      >
+                        <Square size={15} /> Stop recording
+                      </button>
+                      <button
+                        className="button"
+                        onClick={() => stopCamera(true)}
+                      >
+                        Discard
+                      </button>
+                      <span>
+                        Stopping adds the clip to your recordings, ready to
+                        analyze.
+                      </span>
+                    </div>
+                  )}
+                  {mode === 'observer' && (
                     <div className="camera-actions">
                       <button
                         className="button primary"
                         onClick={() => setWatch(!watch)}
                       >
                         {watch ? <Square size={15} /> : <Eye size={15} />}{' '}
-                        {watch ? 'Pause observer' : 'Start watching'}
+                        {watch ? 'Pause observer' : 'Resume observer'}
                       </button>
-                      <button className="button" onClick={() => stopCamera()}>
-                        Stop & replay recording
-                      </button>
+                      <span>
+                        {watch
+                          ? `Checking the camera against "${skills.find((s) => s.id === skillId)?.name ?? 'the skill'}" every few seconds.`
+                          : 'Paused. Nothing is being sent.'}
+                      </span>
                     </div>
                   )}
                 </section>

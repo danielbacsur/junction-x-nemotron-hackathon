@@ -769,8 +769,14 @@ h2 {
 }
 .camera-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 14px;
   padding: 18px;
+}
+.camera-actions span {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #929ba0;
 }
 .skill-workspace {
   display: grid;
@@ -1341,4 +1347,16 @@ footer {
     font-size: 46px;
     letter-spacing: -1.5px;
   }
+}
+.recording.record-now {
+  margin-top: 6px;
+  border: 1px dashed #dfe5d8;
+}
+.recording.record-now .recording-number {
+  display: flex;
+  color: #c9523b;
+  background: #fdebe5;
+}
+.recording.record-now > svg {
+  margin-left: auto;
 }
