@@ -72,6 +72,12 @@ export type Analysis = {
   cost: number;
   createdAt: string;
   reviewed: boolean;
+  alert?: {
+    name: string;
+    confirmed: boolean;
+    confirmationId: string;
+    evidence: string[];
+  };
   generationId?: string;
   isByok?: boolean;
 };

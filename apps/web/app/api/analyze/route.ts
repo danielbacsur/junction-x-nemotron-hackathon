@@ -1,5 +1,5 @@
 import { requestSchema } from '@agent/lib/contracts';
-import { callModel } from '@agent/lib/model';
+import { observe } from '@agent/lib/observe';
 export const maxDuration = 300;
 export async function POST(req: Request) {
   try {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
         { error: 'Invalid observation. Provide 1–40 JPEG frames and a skill.' },
         { status: 400 },
       );
-    const result = await callModel(input.data);
+    const result = await observe(input.data);
     return Response.json(result);
   } catch (e) {
     return Response.json(

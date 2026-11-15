@@ -5,7 +5,9 @@ export async function GET() {
     ['pack', 'Pack & put away'],
     ['repack', 'Unpack & repack'],
     ['orientation', 'Orient & hold'],
-    ['theft', 'Theft alert'],
+    ['theft', 'Concealment review'],
+    ['packing-alert', 'Incomplete packing alert'],
+    ['guard', 'Machine guard review'],
   ];
   return Response.json(
     await Promise.all(

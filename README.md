@@ -61,3 +61,31 @@ Record now captures a clip locally and sends nothing; when stopped, the clip joi
 Production: https://nemotron.danielbacsur.dev (Vercel project `danielbacsur2/junction-x-nemotron-hackathon`). Every push to `main` deploys it. Root Directory is `apps/web`, with Bun workspace installation and Node.js 24. Gateway credentials are stored as production and preview secrets. Instruction and skill files outside the app directory are included through Next.js output tracing.
 
 The five demo recordings are committed under `apps/web/public/recordings`, so every deployment includes them. They are publicly accessible there; newly uploaded videos and camera recordings remain browser-local, with selected frames sent for inference. `.vercelignore` keeps secrets, dependencies, build outputs, local evaluation artifacts and the video project out of the build.
+
+## Rule-driven observation and evidence review
+
+Skills support `Alert: label` and one of these closed `Alert when:` forms:
+
+- `all steps in order` (default for existing alert skills)
+- `open then close without insert`
+- `movement while open`
+
+IDs must reference declared steps. Ordered rules require distinct chronological evidence moments; while rules require a shared frame. Missing-event rules only become candidates with a dense (maximum 0.5 second gap), at least one-second observed interval and an explicitly unobserved intermediate event. Occlusion must remain uncertain. Sampling checks cannot prove visual truth or payment status.
+
+The server runs the rule and sends each candidate for an independent thinking-enabled Nemotron confirmation. Only confirmed alerts are displayed. The studio and live observer share the bounded closer-review flow; live review retrieves denser frames from the local buffer and carries the prior assessment within the current generation. It cannot recover unseen events.
+
+Confirmed alerts are persisted to IndexedDB, including skill, verdict, confirmation ID and evidence images, before the UI or notification fires. `/alerts` supports human confirmation/dismissal and JSON export for evaluation. This is device-local evidence, not tamper-resistant centralized storage. Notifications require opt-in and an open page; no background monitoring is claimed.
+
+## Source-grounded skill research
+
+Set server-only `EXA_API_KEY` in addition to the Gateway key. In Skills, enter a practical task and select Draft from sources. Exa search fetches source text; Nemotron through Gateway drafts observable steps with supporting URLs and quotes. The server drops unsupported quotes. The user must review the procedure before activating it. Quote matching establishes provenance, not correctness or suitability. The Alerts view links to this same research flow for follow-up. Provider errors fail visibly; missing credentials never produce simulated sources.
+
+This integration has deterministic quote-validation coverage but has not been exercised with live Exa credentials. See [Exa search API](https://exa.ai/docs/reference/search).
+
+## Comparative evaluation
+
+`bun scripts/benchmark.ts` compares a short plain-prompt arm with the harness on identical committed recording frames, reporting false advances, alert decisions, errors, token use and latency. Reports are append-only under ignored `runs/benchmarks/<commit>/<timestamp>.json`. The plain-prompt arm retains schema/provenance validation; it is not a raw unvalidated model baseline. Export reviewed alerts from `/alerts` to curate additional labeled fixtures before claiming improved accuracy. The existing published evaluation dashboard predates the new rule grammar and should not be treated as a measurement of these changes.
+
+## Development provenance
+
+Codex implemented the initial studio, browser capture/replay, Gateway adapter, teaching workflow, evidence validation and initial evals. Some later reconstructed commit trailers credit Claude on code initially produced with Codex; those trailers are not an exhaustive authorship record. Existing history is preserved. Current changes use actual commit timestamps.

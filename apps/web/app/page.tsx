@@ -24,8 +24,9 @@ import {
 } from 'lucide-react';
 import { MODELS, type Analysis, type Frame } from '@agent/lib/contracts';
 import { recordings } from '@agent/lib/catalog';
-import { reviewInterval } from '@agent/tools/review-footage';
-import { alertName, raisedAlert } from '@agent/tools/raise-alert';
+import { alertName } from '@agent/tools/raise-alert';
+import { writeAlert } from '@/lib/alerts';
+import { observeFrames } from '@/lib/observe';
 import { extractFrames, cameraFrame } from '@/lib/video';
 type Skill = { id: string; name: string; markdown: string };
 type Saved = Analysis & { source: string; skillText: string };
@@ -91,6 +92,15 @@ export default function Home() {
   const [alarm, setAlarm] = useState<Alarm | null>(null);
   const [captures, setCaptures] = useState<Clip[]>([]);
   const [shape, setShape] = useState(1.5);
+  const [researchTask, setResearchTask] = useState('');
+  const [researchBusy, setResearchBusy] = useState(false);
+  useEffect(() => {
+    const task = new URLSearchParams(location.search).get('followup');
+    if (task) {
+      setResearchTask(task);
+      setTab('skills');
+    }
+  }, []);
   const video = useRef<HTMLVideoElement>(null),
     input = useRef<HTMLInputElement>(null),
     stream = useRef<MediaStream | null>(null),
@@ -105,6 +115,9 @@ export default function Home() {
     captured = useRef(0),
     skillBefore = useRef<string | null>(null),
     latest = useRef({ skill, model });
+  const priorLook = useRef<{ generation: number; result: Analysis } | null>(
+    null,
+  );
   latest.current = { skill, model };
   watchRef.current = watch;
   useEffect(() => {
@@ -180,14 +193,19 @@ export default function Home() {
       tone.stop(at + 0.24);
     });
   }
-  function raise(
+  async function raise(
     r: Analysis,
     text: string,
     fs: Frame[],
     from: string,
     mode: Alarm['mode'],
   ) {
-    const alert = raisedAlert(text, r.verdict);
+    const alert = r.alert?.confirmed
+      ? {
+          name: r.alert.name,
+          steps: r.verdict.steps.filter((s) => s.status === 'verified'),
+        }
+      : null;
     if (!alert) return;
     const when = (id: string) => r.frames.find((f) => f.id === id)?.time ?? 0;
     if (mode === 'live') {
@@ -200,7 +218,21 @@ export default function Home() {
       if (now < alerted.current + 10 || latest <= alerted.current) return;
       alerted.current = now;
     }
-    if (mode !== 'quiet') siren();
+    if (mode !== 'quiet') {
+      await writeAlert({
+        id: r.id,
+        createdAt: r.createdAt,
+        skill: text,
+        analysis: r,
+        frames: fs.filter((f) => r.alert?.evidence.includes(f.id)),
+        review: 'pending',
+      });
+      if ('Notification' in window && Notification.permission === 'granted')
+        new Notification(alert.name, {
+          body: 'A visual observation needs review in Lookout.',
+        });
+      siren();
+    }
     setAlarm({
       name: alert.name,
       source: from,
@@ -216,11 +248,6 @@ export default function Home() {
       ),
     });
   }
-  useEffect(() => {
-    if (alarm?.mode !== 'live') return;
-    const timer = setTimeout(() => setAlarm(null), 9000);
-    return () => clearTimeout(timer);
-  }, [alarm]);
   function clear() {
     generation.current++;
     setResult(null);
@@ -279,36 +306,19 @@ export default function Home() {
       if (g !== generation.current) return;
       setFrames(fs);
       setPhase('Observing the procedure');
-      let r = await send(fs, text, m);
-      if (g !== generation.current) return;
-      setResult(r);
-      let all = fs;
-      if (r.verdict.request.needed) {
-        setPhase('Reviewing an uncertain moment');
-        const interval = reviewInterval(r.verdict.request, fs.at(-1)!.time);
-        if (interval) {
-          const dense = await extractFrames(
-            source,
-            interval.start,
-            interval.end,
-            12,
-          );
-          all = [
-            ...new Map([...fs, ...dense].map((f) => [f.id, f])).values(),
-          ].sort((a, b) => a.time - b.time);
-          setFrames(all);
-          const next = await send(all, text, m, r, true);
-          next.cost += r.cost;
-          next.latencyMs += r.latencyMs;
-          next.inputTokens += r.inputTokens;
-          next.outputTokens += r.outputTokens;
-          r = next;
-        }
-      }
+      const observed = await observeFrames(
+        fs,
+        (frames, previous, reviewed) =>
+          send(frames, text, m, previous, reviewed),
+        (start, end) => extractFrames(source, start, end, 12),
+      );
+      const r = observed.result,
+        all = observed.frames;
+      setFrames(all);
       if (g !== generation.current) return;
       setResult(r);
       remember(r, source, text);
-      raise(r, text, all, title, 'recorded');
+      await raise(r, text, all, title, 'recorded');
       setPhase('Observation complete');
     } catch (e) {
       if (g === generation.current)
@@ -441,12 +451,39 @@ export default function Home() {
       const g = generation.current;
       try {
         const fs = recent(liveFrames.current);
-        const r = await send(fs, latest.current.skill, latest.current.model);
+        const observed = await observeFrames(
+          fs,
+          (frames, previous, reviewed) =>
+            send(
+              frames,
+              latest.current.skill,
+              latest.current.model,
+              previous ??
+                (priorLook.current?.generation === g
+                  ? priorLook.current.result
+                  : undefined),
+              reviewed,
+            ),
+          (start, end) =>
+            Promise.resolve(
+              liveFrames.current
+                .filter((f) => f.time >= start && f.time <= end)
+                .slice(-40),
+            ),
+        );
+        const r = observed.result;
         if (g === generation.current && stream.current) {
-          setFrames(fs);
+          priorLook.current = { generation: g, result: r };
+          setFrames(observed.frames);
           setResult(r);
           setError('');
-          raise(r, latest.current.skill, fs, 'Observer', 'live');
+          await raise(
+            r,
+            latest.current.skill,
+            observed.frames,
+            'Observer',
+            'live',
+          );
         }
       } catch (e) {
         // One failed look is not worth a message: the next one follows in
@@ -552,6 +589,9 @@ export default function Home() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav>
+          <a href="/alerts" className="button">
+            Alert evidence & review
+          </a>
           {[
             { id: 'observe', icon: ScanLine, label: 'Observation studio' },
             { id: 'skills', icon: FileCode2, label: 'Skills' },
@@ -1127,6 +1167,55 @@ export default function Home() {
                 ))}
               </aside>
               <div className="skill-editor">
+                <div style={{ padding: 16 }}>
+                  <label>
+                    Research a sourced procedure
+                    <input
+                      aria-label="Research task"
+                      value={researchTask}
+                      onChange={(e) => setResearchTask(e.target.value)}
+                      placeholder="Find current setup instructions"
+                    />
+                  </label>
+                  <button
+                    disabled={researchBusy || researchTask.length < 10}
+                    onClick={async () => {
+                      setResearchBusy(true);
+                      try {
+                        const res = await fetch('/api/research', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ task: researchTask }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        const id = 'research-' + Date.now();
+                        setSkills((old) => [
+                          ...old,
+                          {
+                            id,
+                            name: 'Researched procedure',
+                            markdown: data.markdown,
+                          },
+                        ]);
+                        setSkillId(id);
+                        setSkill(data.markdown);
+                        clear();
+                      } catch (e) {
+                        setError(String(e));
+                      } finally {
+                        setResearchBusy(false);
+                      }
+                    }}
+                  >
+                    {researchBusy ? 'Researching…' : 'Draft from sources'}
+                  </button>
+                  <p>
+                    Review source quotes and observable steps before choosing
+                    Use this skill.
+                  </p>
+                  {error && <p role="alert">{error}</p>}
+                </div>
                 <div className="panel-top">
                   <span>SKILL.md</span>
                   <span>Editable procedure</span>
@@ -1221,7 +1310,7 @@ export default function Home() {
                       }
                       /{r.verdict.steps.length} verified
                     </span>
-                    {raisedAlert(r.skillText, r.verdict) && (
+                    {r.alert?.confirmed && (
                       <span className="alert-tag">Alert</span>
                     )}
                     <span>${r.cost.toFixed(4)}</span>

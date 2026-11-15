@@ -26,6 +26,8 @@ export async function callModel(args: {
   model: string;
   previous?: string;
   reviewed?: boolean;
+  confirmation?: boolean;
+  baseline?: boolean;
 }): Promise<Analysis> {
   const key = process.env.AI_GATEWAY_API_KEY;
   if (!key)
@@ -81,7 +83,9 @@ export async function callModel(args: {
       throw new Error(
         'The model did not assess every procedure step correctly. No progress was accepted.',
       );
-    return validateOrder(verdict, args.frames, ids);
+    return /^Alert when:.*(?: without | while )/m.test(args.skill)
+      ? verdict
+      : validateOrder(verdict, args.frames, ids);
   };
   let raw: any;
   let verdict!: Verdict;
@@ -97,7 +101,15 @@ export async function callModel(args: {
         body: JSON.stringify({
           model: args.model,
           messages: [
-            { role: 'system', content: await instructions() },
+            {
+              role: 'system',
+              content: args.baseline
+                ? 'Assess the supplied procedure from the timestamped images. Return the requested JSON schema and cite frame IDs.'
+                : (await instructions()) +
+                  (args.confirmation
+                    ? '\nIndependently challenge this candidate alert. Verify only directly visible actions. Cite the exact transition frame for each verified event. For absence rules require an unobstructed continuous view; otherwise mark the missing step uncertain. Use deliberate reasoning before answering.'
+                    : ''),
+            },
             { role: 'user', content },
           ],
           ...(args.model !== 'alibaba/qwen3.5-flash'
@@ -114,7 +126,7 @@ export async function callModel(args: {
             : {}),
           max_tokens: 6000,
           temperature: 0.1,
-          reasoning: { enabled: false },
+          reasoning: { enabled: !!args.confirmation },
           ...(args.model.startsWith('google/') &&
           process.env.GOOGLE_GENERATIVE_AI_API_KEY
             ? {

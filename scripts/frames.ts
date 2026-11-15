@@ -4,8 +4,8 @@ import type { Frame } from '../agents/watcher/agent/lib/contracts';
 // Samples a fixture the way the studio samples a recording: twenty frames,
 // evenly spaced and 768 pixels wide. Passing `end` cuts the recording short,
 // as if it had stopped there.
-export function sample(clip: string, end?: number): Frame[] {
-  const file = `evals/recordings/${clip}.mp4`;
+export function sample(clip: string, end?: number, start = 0): Frame[] {
+  const file = `apps/web/public/recordings/${clip}.mp4`;
   const duration = Number(
     execFileSync('ffprobe', [
       '-v',
@@ -21,7 +21,7 @@ export function sample(clip: string, end?: number): Frame[] {
   const stop = length - 0.04;
   const count = 20;
   return Array.from({ length: count }, (_, i) => {
-    const time = (stop * i) / (count - 1);
+    const time = start + ((stop - start) * i) / (count - 1);
     const jpeg = execFileSync(
       'ffmpeg',
       [

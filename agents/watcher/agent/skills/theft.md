@@ -1,7 +1,9 @@
-# Theft
+# Concealment review
 
-Alert: Possible theft
+Alert: Item concealed followed by departure — human review required
+Alert when: conceal then leave without checkout
 
-Watch for someone hiding an item in the clothes they are wearing. Holding an item, showing it, putting it down, or putting it into a bag, box or any other container they carry is not concealment, even when the item ends up out of sight.
-
-- conceal: The person hides an item they were holding inside clothing on their own body: under a shirt or jacket, or in a pocket. An item going into a bag or other container does not count. Evidence should show the item in the hand, then the hand at or under the clothing, then the hands without the item.
+- conceal: An item visibly moves from a hand into a pocket or carried bag and is released inside.
+- checkout: A visible checkout interaction occurs before departure. Do not infer payment from gestures alone.
+- leave: The person crosses the visible exit boundary after concealment.
+  Require the checkout area and entire interval to remain observable. Occlusion means uncertain. This pattern does not establish theft or intent; request human review.
