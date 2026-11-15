@@ -23,7 +23,7 @@ All inference uses https://ai-gateway.vercel.sh. Google BYOK is sent server-side
 - `scripts/negative-eval.ts`: recordings that must not complete a skill, either cut short or shown to the wrong skill (cases in `scripts/negative-cases.ts`).
 - `runs`: ignored model results and extracted frames.
 
-Media stays in the browser during upload and capture. Selected JPEGs are sent through Gateway. Completed runs and edited skills are stored in browser local storage. Uploaded-video URLs are currently session-scoped; export the recording before leaving. The original source recordings are never modified. Development fixtures are copied to ignored `apps/web/public/recordings`.
+Media stays in the browser during upload and capture. Selected JPEGs are sent through Gateway. Completed runs and edited skills are stored in browser local storage. Uploaded-video URLs are currently session-scoped; export the recording before leaving. The original source recordings are never modified. The demo recordings live in `apps/web/public/recordings`.
 
 ## Alerts
 
@@ -58,8 +58,6 @@ Record now captures a clip locally and sends nothing; when stopped, the clip joi
 
 ## Deployment
 
-Production: https://lookout-nemotron.vercel.app (Vercel project `danielbacsur2/lookout-nemotron`). Root Directory is `apps/web`, with Bun workspace installation and Node.js 24. Gateway credentials are stored as production and preview secrets. Instruction and skill files outside the app directory are included through Next.js output tracing.
+Production: https://nemotron.danielbacsur.dev (Vercel project `danielbacsur2/junction-x-nemotron-hackathon`). Every push to `main` deploys it. Root Directory is `apps/web`, with Bun workspace installation and Node.js 24. Gateway credentials are stored as production and preview secrets. Instruction and skill files outside the app directory are included through Next.js output tracing.
 
-Deploy from the repository root with `vercel deploy --prod --scope danielbacsur2`. The explicit `.vercelignore` excludes secrets, dependencies, build outputs, and local evaluation artifacts while including the three demo recordings in `apps/web/public/recordings`. These demo recordings are publicly accessible in this deployment; newly uploaded videos and camera recordings remain browser-local, with selected frames sent for inference.
-
-The production smoke check verified the homepage, skills, health endpoint, demo media, and an actual Nemotron assessment of the packing recording (both steps verified with timestamped evidence).
+The five demo recordings are committed under `apps/web/public/recordings`, so every deployment includes them. They are publicly accessible there; newly uploaded videos and camera recordings remain browser-local, with selected frames sent for inference. `.vercelignore` keeps secrets, dependencies, build outputs, local evaluation artifacts and the video project out of the build.
