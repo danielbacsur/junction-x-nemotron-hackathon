@@ -38,6 +38,13 @@ const time = (n: number) =>
   `${Math.floor(n / 60)
     .toString()
     .padStart(2, '0')}:${(n % 60).toFixed(1).padStart(4, '0')}`;
+// What the live observer sends: the last nine seconds densely, because a quick
+// action fits between two sparse frames, and the minute before them thinly.
+const recent = (frames: Frame[]) => {
+  const older = frames.slice(0, -20);
+  const step = Math.max(1, Math.ceil(older.length / 8));
+  return [...older.filter((_, i) => i % step === 0), ...frames.slice(-20)];
+};
 // Up to three items spread across a list, so the frames an alert shows cover
 // the whole action rather than only its start.
 const spread = <T,>(items: T[]) =>
@@ -318,7 +325,7 @@ export default function Home() {
         return;
       }
       const f = cameraFrame(v, (performance.now() - started.current) / 1000);
-      liveFrames.current = [...liveFrames.current, f].slice(-28);
+      liveFrames.current = [...liveFrames.current, f].slice(-120);
       setPosition(f.time);
       if (!watchRef.current || running.current || liveFrames.current.length < 4)
         return;
@@ -327,7 +334,7 @@ export default function Home() {
       setPhase('Watching the current action');
       const g = generation.current;
       try {
-        const fs = [...liveFrames.current];
+        const fs = recent(liveFrames.current);
         const r = await send(fs, latest.current.skill, latest.current.model);
         if (g === generation.current && stream.current) {
           setFrames(fs);
@@ -336,13 +343,16 @@ export default function Home() {
           raise(r, latest.current.skill, fs, 'Live camera');
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Observation failed');
-        setWatch(false);
+        // One failed look should not end the watch. Stop only when the
+        // gateway itself is refusing, which will not fix itself.
+        const message = e instanceof Error ? e.message : 'Observation failed';
+        setError(message);
+        if (/Gateway|not connected/.test(message)) setWatch(false);
       } finally {
         running.current = false;
         setBusy(false);
       }
-    }, 1800);
+    }, 450);
     return () => clearInterval(timer);
   }, [live]);
   function seek(t: number) {
