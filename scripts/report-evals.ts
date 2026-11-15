@@ -34,11 +34,16 @@ for (const model of [
       ),
     ),
     totalCost: rows.reduce((s, r) => s + r.cost, 0),
-    cases: negative.map((n: any) => ({
-      name: n.case,
-      passed: !!n.passed,
-      falseAdvances: n.falseAdvances || [],
-    })),
+    cases: [...new Set(negative.map((n: any) => n.case))].map((name) => {
+      const runs = negative.filter((n: any) => n.case === name);
+      return {
+        name,
+        passed: runs.every((n: any) => n.passed),
+        falseAdvances: [
+          ...new Set(runs.flatMap((n: any) => n.falseAdvances || [])),
+        ],
+      };
+    }),
   });
 }
 await writeFile(
@@ -46,7 +51,7 @@ await writeFile(
   JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
-      note: 'Three supplied recordings and three truncated variants. Development fixtures, not a held-out benchmark. Cost is estimated from uncached list prices.',
+      note: 'Five supplied recordings, plus eight that must not complete a skill: cut before a step happens, or shown to the theft alert it must not fire on. Every case is run three times, because one look is not the same every time. Development fixtures, not a held-out benchmark. Cost is estimated from uncached list prices.',
       models,
     },
     null,

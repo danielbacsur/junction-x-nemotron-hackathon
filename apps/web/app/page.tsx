@@ -1075,9 +1075,11 @@ export default function Home() {
                       />
                     </div>
                     <p>
-                      Complete recordings: {m.positivePasses}/{m.positiveCount}
+                      Complete recordings: {m.positivePasses}/{m.positiveCount}{' '}
+                      runs
                       <br />
-                      No false completion: {m.negativePasses}/{m.negativeCount}
+                      No false completion: {m.negativePasses}/{m.negativeCount}{' '}
+                      runs
                     </p>
                     <div className="eval-stats">
                       <span>
@@ -1085,7 +1087,7 @@ export default function Home() {
                       </span>
                       <span>
                         ${m.totalCost.toFixed(4)}{' '}
-                        <small>3 full recordings</small>
+                        <small>{m.positiveCount} full-recording runs</small>
                       </span>
                     </div>
                     {m.cases.map((c: any) => (

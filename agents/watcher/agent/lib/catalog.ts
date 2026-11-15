@@ -23,4 +23,20 @@ export const recordings = [
     skill: 'orientation',
     duration: 16.65,
   },
+  {
+    id: 'clip-4',
+    title: 'Concealed item',
+    description: 'An item is shown, then goes inside the jacket.',
+    src: '/recordings/clip-4.mp4',
+    skill: 'theft',
+    duration: 10.57,
+  },
+  {
+    id: 'clip-5',
+    title: 'Concealed and carried off',
+    description: 'Item into the jacket, then out of view.',
+    src: '/recordings/clip-5.mp4',
+    skill: 'theft',
+    duration: 10.6,
+  },
 ];

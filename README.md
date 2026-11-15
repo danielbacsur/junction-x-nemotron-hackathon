@@ -20,10 +20,24 @@ All inference uses https://ai-gateway.vercel.sh. Google BYOK is sent server-side
 - `agents/watcher/agent`: instructions, skills, model adapter, contracts, evidence tools.
 - `agents/watcher/evals`: deterministic evidence and review boundary tests.
 - `scripts/evaluate.ts`: real Gateway evaluations over the three supplied recordings.
-- `scripts/negative-eval.ts`: incomplete recordings that must not be marked complete.
+- `scripts/negative-eval.ts`: recordings that must not complete a skill, either cut short or shown to the wrong skill (cases in `scripts/negative-cases.ts`).
 - `runs`: ignored model results and extracted frames.
 
 Media stays in the browser during upload and capture. Selected JPEGs are sent through Gateway. Completed runs and edited skills are stored in browser local storage. Uploaded-video URLs are currently session-scoped; export the recording before leaving. The original source recordings are never modified. Development fixtures are copied to ignored `apps/web/public/recordings`.
+
+## Alerts
+
+A skill can describe something that should not happen. Give it an `Alert:` line with the alert's name, and the studio raises that alert once every step of the skill is verified, with the frames that prove it:
+
+```md
+# Theft
+
+Alert: Possible theft
+
+- conceal: The person hides an item they were holding inside clothing on their own body.
+```
+
+Alerts use the same checks as any other skill: a step needs real frames as evidence, and the steps must be seen in order. On a live camera a raised alert stays on screen until it is dismissed, even after the moment has left the rolling window. `agents/watcher/agent/skills/theft.md` is the example; edit it or write your own in the Skills tab.
 
 ## Validation
 

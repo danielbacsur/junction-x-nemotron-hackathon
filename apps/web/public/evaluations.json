@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-11-14T12:43:57.749Z",
-  "note": "Three supplied recordings and three truncated variants. Development fixtures, not a held-out benchmark. Cost is estimated from uncached list prices.",
+  "generatedAt": "2026-11-14T23:16:00.866Z",
+  "note": "Five supplied recordings, plus eight that must not complete a skill: cut before a step happens, or shown to the theft alert it must not fire on. Every case is run three times, because one look is not the same every time. Development fixtures, not a held-out benchmark. Cost is estimated from uncached list prices.",
   "models": [
     {
       "model": "nvidia/nemotron-3.5-super-vl",
-      "positivePasses": 3,
-      "positiveCount": 3,
-      "negativePasses": 3,
-      "negativeCount": 3,
-      "averageSeconds": 3.12,
-      "totalCost": 0.0076414000000000004,
+      "positivePasses": 15,
+      "positiveCount": 15,
+      "negativePasses": 23,
+      "negativeCount": 24,
+      "averageSeconds": 2.92,
+      "totalCost": 0.029385,
       "cases": [
         {
           "name": "orientation-before-second-horizontal",
@@ -23,6 +23,33 @@
         },
         {
           "name": "packing-before-insertion",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-before-concealment",
+          "passed": false,
+          "falseAdvances": [
+            "conceal"
+          ]
+        },
+        {
+          "name": "theft-item-only-shown",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-packing-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-repacking-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-holding-a-can",
           "passed": true,
           "falseAdvances": []
         }
@@ -30,12 +57,12 @@
     },
     {
       "model": "alibaba/qwen3.5-flash",
-      "positivePasses": 3,
-      "positiveCount": 3,
-      "negativePasses": 3,
-      "negativeCount": 3,
-      "averageSeconds": 8.6,
-      "totalCost": 0.0040100000000000005,
+      "positivePasses": 12,
+      "positiveCount": 15,
+      "negativePasses": 24,
+      "negativeCount": 24,
+      "averageSeconds": 6.24,
+      "totalCost": 0.0156771,
       "cases": [
         {
           "name": "orientation-before-second-horizontal",
@@ -49,6 +76,31 @@
         },
         {
           "name": "packing-before-insertion",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-before-concealment",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-item-only-shown",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-packing-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-repacking-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-holding-a-can",
           "passed": true,
           "falseAdvances": []
         }
@@ -56,25 +108,50 @@
     },
     {
       "model": "google/gemini-2.5-flash-lite",
-      "positivePasses": 3,
-      "positiveCount": 3,
-      "negativePasses": 1,
-      "negativeCount": 3,
-      "averageSeconds": 2.51,
-      "totalCost": 0.0028374000000000003,
+      "positivePasses": 15,
+      "positiveCount": 15,
+      "negativePasses": 24,
+      "negativeCount": 24,
+      "averageSeconds": 2.98,
+      "totalCost": 0.0119719,
       "cases": [
         {
           "name": "orientation-before-second-horizontal",
-          "passed": false,
-          "falseAdvances": ["horizontal-again"]
+          "passed": true,
+          "falseAdvances": []
         },
         {
           "name": "repack-before-replacement",
-          "passed": false,
-          "falseAdvances": ["replace-pringles"]
+          "passed": true,
+          "falseAdvances": []
         },
         {
           "name": "packing-before-insertion",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-before-concealment",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-item-only-shown",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-packing-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-repacking-a-bag",
+          "passed": true,
+          "falseAdvances": []
+        },
+        {
+          "name": "theft-while-holding-a-can",
           "passed": true,
           "falseAdvances": []
         }
